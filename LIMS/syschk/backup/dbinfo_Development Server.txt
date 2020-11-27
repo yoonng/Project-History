@@ -1,0 +1,42 @@
+SQL> SELECT * FROM NLS_DATABASE_PARAMETERS where parameter='NLS_CHARACTERSET';
+
+PARAMETER
+------------------------------------------------------------
+VALUE
+--------------------------------------------------------------------------------
+
+NLS_CHARACTERSET
+AL32UTF8
+
+
+SQL> SELECT * FROM dba_role_privs where granted_role='DBA';
+
+GRANTEE
+------------------------------------------------------------
+GRANTED_ROLE                                                 ADMIN_ DEFAUL
+------------------------------------------------------------ ------ ------
+SYS
+DBA                                                          YES    YES
+
+SYSTEM
+DBA                                                          YES    YES
+
+HDBA
+DBA                                                          NO     YES
+
+
+SQL> column file_name format a50;
+SQL> Select file_name, AUTOEXTENSIBLE from dba_data_files;
+
+FILE_NAME                                          AUTOEX
+-------------------------------------------------- ------
+E:\ORADATA\BVDEV\SYSTEM01.DBF                      YES
+E:\ORADATA\BVDEV\SYSAUX01.DBF                      YES
+E:\ORADATA\BVDEV\UNDOTBS01.DBF                     YES
+E:\ORADATA\BVDEV\USERS01.DBF                       YES
+E:\ORADATA\BVDEV\UDA01.DBF                         YES
+E:\ORADATA\BVDEV\UDA02.DAT                         YES
+
+6 개의 행이 선택되었습니다.
+
+SQL>

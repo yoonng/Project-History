@@ -1,0 +1,127 @@
+LES v3.x and LIMS v4.2 SP3 APPLICATION SERVER PREREQUISITE CHECK 
+-1--0-_1021 
+ 
+Name     
+BVAPDEV  
+
+ 
+----- CPU ------------------------------------ 
+Name                                       
+Intel(R) Xeon(R) CPU E5-2620 v3 @ 2.40GHz  
+Intel(R) Xeon(R) CPU E5-2620 v3 @ 2.40GHz  
+
+ 
+----- 4000000000 or greater of Memory  ------------------------------------ 
+TotalPhysicalMemory  
+68584853504          
+
+ 
+----- 200000000000 or greater of FreeSpace  ------------------------------------ 
+FreeSpace      Name  Size           
+239662137344   C:    299481690112   
+1991015079936  D:    2000230019072  
+
+ 
+----- OS ------------------------------------ 
+English - United States    en   en-us      1252      409                    1033 
+Caption                                    CodeSet  Locale  OSArchitecture  OSLanguage  ServicePackMajorVersion  
+Microsoft Windows Server 2012 R2 Standard  949      0412    64-bit          1042        0                        
+
+ 
+----------------------------------- Software Requirements ------------------------------------ 
+ 
+----- Oracle Client 11g or higher 32-bit clients only-------------- 
+Version 11.2.0.1.0 32-bit 
+ 
+ 
+----- .Net v3.5 Feature installed?  ------------------------------------ 
+    [X] .NET Framework 3.5(.NET 2.0 및 3.0 포함)        NET-Framework-Core             Installed    
+ 
+ 
+.NET Framework v4.0 SP1 or higher ------------------------------------ 
+    [X] .NET Framework 4.5                              NET-Framework-45-Core          Installed    
+ 
+ 
+Internet Explorer 9, 10 or 11 ------------------------------------ 
+IE 9.0000 
+ 
+Internet Information Server (IIS) ------------------------------------ 
+Version 8.5 
+ 
+SAP Crystal Reports Runtime v13.0.3 or 13.0.12 32-bit ------------------------------------ 
+Name                                                            Version       
+SAP Crystal Reports runtime engine for .NET Framework (32-bit)  13.0.12.1494  
+
+ 
+----- Microsoft Word 2003, 2007, 2010, 2013(requires configuration) ------------------------------------ 
+Name                                     
+Microsoft Office Word MUI (Korean) 2010  
+
+ 
+----- MSXML3 8.20.8730.1 or higher ------------------------------------ 
+Name                            Version           
+c:\windows\system32\msxml3.dll  8.110.9600.17415  
+
+ 
+----- Adobe Reader  9.4, 10 or 11 ------------------------------------ 
+Name                              Version       
+Adobe Refresh Manager             1.8.0         
+Adobe Acrobat Reader DC - Korean  15.009.20077  
+
+ 
+Microsoft Silverlight v3 or higher ------------------------------------ 
+
+
+ 
+----- System Cryptography FIPS 0=Disabled ------------------------------------------  
+
+HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\FIPSAlgorithmPolicy
+    Enabled    REG_DWORD    0x0
+
+ 
+----- MSDTC Running? ------------------------------------ 
+Name   State    
+MSDTC  Running  
+
+ 
+----- 8dot3NameCreation Enabled? ------------------------------------ 
+볼륨 상태가 0(8dot3 이름 만들기 사용)입니다.
+레지스트리 상태가 기본값인 2(볼륨별 설정)입니다.
+
+위의 두 설정에 따라 C:에서 8dot3 이름 만들기가 사용됩니다.
+ 
+ 
+----- Accelrys Products Installed ------------------------------------ 
+Name                                      Version    
+Accelrys LIMS 4.2                         4.2.302.7  
+Accelrys Environmental Monitoring 1.1     1.1.302.5  
+Accelrys Lab Execution System Server 3.6  3.6.2.190  
+Accelrys Inventory Management 1.2         1.2.302.6  
+
+
+
+ 
+IIS was configured as expected: y 
+ 
+Code 39 and Arial Unicode MS were present: y 
+ 
+MSWord opens successfully: y 
+ 
+Groups are configured as expected: y 
+ 
+System User is in the global group ePMC_Users: y 
+ 
+IPv6 interfaces were not present: y 
+ 
+IE Enhanced Security is off: y 
+ 
+Oracle Provider for OLE DB is present: y 
+ 
+TNSNAMES.ORA file is present and configured: y 
+ 
+Able to connect to database: y 
+ 
+Firewalls are off: y 
+ 
+Installation media has been downloaded: y 
+ 
