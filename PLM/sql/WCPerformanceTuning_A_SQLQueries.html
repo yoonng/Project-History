@@ -1,0 +1,238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<meta name="GENERATOR" content="Quadralay WebWorks Publisher Standard Edition 6.0.2">
+<meta name="TEMPLATEBASE" content="Dynamic HTML Standard Edition">
+<meta name="LASTUPDATED" content="08/19/02 15:55:58">
+<link rel="StyleSheet" href="standard.css" type="text/css" media="screen">
+<title>Useful SQL Queries</title>
+</head>
+
+<body background="images/backgrnd.gif">
+
+<br><br>
+
+
+
+<blockquote>
+<h2 class="Heading1">
+  <a name="54940"> </a>A 
+</h2>
+<h1 class="Title">
+  <a name="54943"> </a>Useful SQL Queries
+</h1><hr>
+<p class="Body">
+  <a name="54944"> </a>These SQL queries can help you to optimize your Oracle database.
+</p>
+<h3 class="Heading2">
+  <a name="54969"> </a>FILE Name: explain_display.sql
+</h3>
+<dl>  <dl>
+    <dt class="Indented2"> <a name="54970"> </a>REM Author: Vishal Arora, Apr 28-1999
+    <dt class="Indented2"> <a name="54971"> </a>REM Name: explain_display.sql
+    <dt class="Indented2"> <a name="54972"> </a>REM Purpose: Does structured display of EXPLAIN PLAN
+    <dt class="Indented2"> <a name="54973"> </a>REM Usage:   @explain_display &lt;explain_id&gt;
+    <dt class="Indented2"> <a name="54974"> </a>
+    <dt class="Indented2"> <a name="54975"> </a>column query_plan format A54
+    <dt class="Indented2"> <a name="54976"> </a>REM column object_node format A10
+    <dt class="Indented2"> <a name="54977"> </a>column position format 990 heading "POS"
+    <dt class="Indented2"> <a name="54978"> </a>column cost format 990 heading "COST"
+    <dt class="Indented2"> <a name="54979"> </a>column cardinality format 999,990 heading "ROWS"
+    <dt class="Indented2"> <a name="54980"> </a>REM column bytes format 999,990 heading "BYTES"
+    <dt class="Indented2"> <a name="54981"> </a>
+    <dt class="Indented2"> <a name="54982"> </a>SELECT
+    <dt class="Indented2"> <a name="54983"> </a>	DECODE(id, 0, '', LPAD(' ',2*(level-1))||level||'.'||position||' ')
+    <dt class="Indented2"> <a name="54984"> </a>	||operation
+    <dt class="Indented2"> <a name="54985"> </a>	||decode(options,null,'',' ('||options||')')
+    <dt class="Indented2"> <a name="54986"> </a>	||' '||object_name||' '||other_tag  
+    <dt class="Indented2"> <a name="54987"> </a>	||' '||decode(id, 0, 'Cost = '||position) query_plan,
+    <dt class="Indented2"> <a name="54988"> </a>	position,
+    <dt class="Indented2"> <a name="54989"> </a>	cost,
+    <dt class="Indented2"> <a name="54990"> </a>	cardinality
+    <dt class="Indented2"> <a name="54991"> </a>FROM plan_table
+    <dt class="Indented2"> <a name="54992"> </a>START WITH id = 0
+    <dt class="Indented2"> <a name="54993"> </a>AND statement_id = '&amp;&amp;1'
+    <dt class="Indented2"> <a name="54994"> </a>CONNECT BY prior id = parent_id
+    <dt class="Indented2"> <a name="54995"> </a>AND statement_id = '&amp;&amp;1';
+  </dl>
+</dl><h3 class="Heading2">
+  <a name="56716"> </a>FILE Name: explain_create.sql
+</h3>
+<dl>  <dl>
+    <dt class="Indented2"> <a name="55003"> </a>REM Author:  Vishal Arora,Apr 28-1999
+    <dt class="Indented2"> <a name="55004"> </a>REM Name:    explain_create.sql
+    <dt class="Indented2"> <a name="55005"> </a>REM Purpose: Create PLAN_TABLE for explain plan
+    <dt class="Indented2"> <a name="55006"> </a>REM Usage:   @explain_create
+    <dt class="Indented2"> <a name="55007"> </a>
+    <dt class="Indented2"> <a name="55008"> </a>drop table plan_table;
+    <dt class="Indented2"> <a name="55009"> </a>set termout off
+    <dt class="Indented2"> <a name="55010"> </a>create table plan_table (
+    <dt class="Indented2"> <a name="55011"> </a>	STATEMENT_ID     VARCHAR2(30)
+    <dt class="Indented2"> <a name="55012"> </a>, TIMESTAMP        DATE
+    <dt class="Indented2"> <a name="55013"> </a>, REMARKS          VARCHAR2(80)
+    <dt class="Indented2"> <a name="55014"> </a>, OPERATION        VARCHAR2(30)
+    <dt class="Indented2"> <a name="55015"> </a>, OPTIONS          VARCHAR2(30)
+    <dt class="Indented2"> <a name="55016"> </a>, OBJECT_NODE      VARCHAR2(128)
+    <dt class="Indented2"> <a name="55017"> </a>, OBJECT_OWNER     VARCHAR2(30)
+    <dt class="Indented2"> <a name="55018"> </a>, OBJECT_NAME      VARCHAR2(30)
+    <dt class="Indented2"> <a name="55019"> </a>, OBJECT_INSTANCE  NUMBER(38)
+    <dt class="Indented2"> <a name="55020"> </a>, OBJECT_TYPE      VARCHAR2(30)
+    <dt class="Indented2"> <a name="55021"> </a>, OPTIMIZER        VARCHAR2(255)
+    <dt class="Indented2"> <a name="55022"> </a>, SEARCH_COLUMNS   NUMBER(38)
+    <dt class="Indented2"> <a name="55023"> </a>, ID               NUMBER(38)
+    <dt class="Indented2"> <a name="55024"> </a>, PARENT_ID        NUMBER(38)
+    <dt class="Indented2"> <a name="55025"> </a>, POSITION         NUMBER(38)
+    <dt class="Indented2"> <a name="55026"> </a>, COST             NUMBER(38)
+    <dt class="Indented2"> <a name="55027"> </a>, CARDINALITY      NUMBER(38)
+    <dt class="Indented2"> <a name="55028"> </a>, BYTES            NUMBER(38)
+    <dt class="Indented2"> <a name="55029"> </a>, OTHER_TAG        VARCHAR2(255)
+    <dt class="Indented2"> <a name="55030"> </a>, OTHER            LONG
+    <dt class="Indented2"> <a name="55031"> </a>);
+    <dt class="Indented2"> <a name="55032"> </a>set termout on
+  </dl>
+</dl><h3 class="Heading2">
+  <a name="55037"> </a>find_all_index_info.sql
+</h3>
+<dl>  <dl>
+    <dt class="Indented2"> <a name="55038"> </a>create or replace procedure list_all_indexes as
+    <dt class="Indented2"> <a name="55039"> </a>v_index_name varchar2(30);
+    <dt class="Indented2"> <a name="55040"> </a>v_table_name varchar2(30);
+    <dt class="Indented2"> <a name="55041"> </a>v_column_name varchar2(50);
+    <dt class="Indented2"> <a name="55042"> </a>v_column_position number;
+    <dt class="Indented2"> <a name="55043"> </a>v_column_list varchar2(400);
+    <dt class="Indented2"> <a name="55044"> </a>
+    <dt class="Indented2"> <a name="55045"> </a>cursor find_index is
+    <dt class="Indented2"> <a name="55046"> </a>	select distinct index_name,table_name
+    <dt class="Indented2"> <a name="55047"> </a>	from user_ind_columns
+    <dt class="Indented2"> <a name="55048"> </a>	where index_name not like 'PK%'
+    <dt class="Indented2"> <a name="55049"> </a>		and index_name not like 'SYS%'
+    <dt class="Indented2"> <a name="55050"> </a>	order by table_name,index_name;
+    <dt class="Indented2"> <a name="55051"> </a>
+    <dt class="Indented2"> <a name="55052"> </a>cursor find_column_info(v_table varchar2, v_index varchar2) is
+    <dt class="Indented2"> <a name="55053"> </a>	select column_name,column_position
+    <dt class="Indented2"> <a name="55054"> </a>	from user_ind_columns
+    <dt class="Indented2"> <a name="55055"> </a>	where index_name = v_index and
+    <dt class="Indented2"> <a name="55056"> </a>		table_name = v_table
+    <dt class="Indented2"> <a name="55057"> </a>	order by column_position;
+    <dt class="Indented2"> <a name="55058"> </a>begin
+    <dt class="Indented2"> <a name="55059"> </a>	dbms_output.enable(1000000);
+    <dt class="Indented2"> <a name="55060"> </a>	open find_index;
+  </dl>
+</dl><p class="Body">
+  <a name="55061"> </a>
+</p>
+<dl>  <dl>
+    <dt class="Indented2"> <a name="55062"> </a>	loop
+    <dt class="Indented2"> <a name="55063"> </a>		fetch find_index into v_index_name,v_table_name;
+    <dt class="Indented2"> <a name="55064"> </a>		exit when find_index%notfound or find_index%notfound is null;
+    <dt class="Indented2"> <a name="55065"> </a>
+    <dt class="Indented2"> <a name="55066"> </a>		FOR v_ind_col IN find_column_info(v_table_name,v_index_name) LOOP
+    <dt class="Indented2"> <a name="55067"> </a>			if (v_ind_col.column_position = 1) then
+    <dt class="Indented2"> <a name="55068"> </a>				v_column_list := v_ind_col.column_name;
+    <dt class="Indented2"> <a name="55069"> </a>			else
+    <dt class="Indented2"> <a name="55070"> </a>				v_column_list := v_column_list||','||v_ind_col.column_name;
+    <dt class="Indented2"> <a name="55071"> </a>			end if;
+    <dt class="Indented2"> <a name="55072"> </a>	END LOOP;
+  </dl>
+</dl><h3 class="Heading2">
+  <a name="55075"> </a>index_rebuild.sql
+</h3>
+<p class="Body">
+  <a name="55076"> </a>/* Script : Index_rebuild.sql                                                                      */
+</p>
+<p class="Body">
+  <a name="55077"> </a>/* This script is used as part of Reorganizing the Indexes to a Different tablespace.*/
+</p>
+<p class="Body">
+  <a name="55078"> </a>/* For Eg.. To isolate all the Windchill Index objects from a tablespace called      */
+</p>
+<p class="Body">
+  <a name="55079"> </a>/* USERS to a new tablespace called INDX for a given schema Owner WTADMIN.           */
+</p>
+<p class="Body">
+  <a name="55080"> </a>/* This script is designed  to rebuild indexes belonging to one schema owner at time.*/
+</p>
+<p class="Body">
+  <a name="55081"> </a>/* You need to login as 'SYSTEM' to run this script.                                 */
+</p>
+<p class="Body">
+  <a name="55082"> </a> 
+</p>
+<p class="Body">
+  <a name="55083"> </a>accept Schema_owner    prompt 'Enter the name of the Owner who owns the Index Objects :'
+</p>
+<p class="Body">
+  <a name="55084"> </a>accept tablespace_new  prompt 'Enter the new tablespace name to move all the indexes : '
+</p>
+<p class="Body">
+  <a name="55085"> </a>
+</p>
+<p class="Body">
+  <a name="55086"> </a>set termout off
+</p>
+<p class="Body">
+  <a name="55087"> </a>set heading off
+</p>
+<p class="Body">
+  <a name="55088"> </a>set feedback off
+</p>
+<p class="Body">
+  <a name="55089"> </a>set pages 0
+</p>
+<p class="Body">
+  <a name="55090"> </a>
+</p>
+<p class="Body">
+  <a name="55091"> </a>set verify off
+</p>
+<p class="Body">
+  <a name="55092"> </a>spool INDREBUILD.SQL
+</p>
+<p class="Body">
+  <a name="55093"> </a>
+</p>
+<p class="Body">
+  <a name="55094"> </a>select 'ALTER INDEX ' || owner || '.' ||index_name || ' REBUILD TABLESPACE &amp;&amp;tablespace_new; ' from
+</p>
+<p class="Body">
+  <a name="55095"> </a>DBA_INDEXES
+</p>
+<p class="Body">
+  <a name="55096"> </a>where owner = '&amp;&amp;Schema_owner';
+</p>
+<p class="Body">
+  <a name="55097"> </a>
+</p>
+<p class="Body">
+  <a name="55098"> </a>spool off
+</p>
+<p class="Body">
+  <a name="55099"> </a>
+</p>
+<p class="Body">
+  <a name="55100"> </a>@INDREBUILD.SQL
+</p>
+<p class="Body">
+  <a name="56908"> </a>
+</p>
+</blockquote>
+
+
+
+
+<table border="0" cellpadding="6" cellspacing="6">
+  <tr>
+
+    <td><a href="WCPerformanceTuning_WorkflowPerformance.html"><img src="images/navprev.gif" width="42" height="23" border="0"
+    alt="PREV"> </a></td>
+    <td><a href="WCPerformanceTuning_B_OracleAdmin.html"><img src="images/navnext.gif" width="42" height="23" border="0"
+    alt="NEXT"> </a></td>
+    <td><a href="WCPerformanceTuningGuideIX.html"><img src="images/navidx.gif" width="85" height="23" border="0"
+    alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+</body>
+</html>

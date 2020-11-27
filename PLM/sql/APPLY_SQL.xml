@@ -1,0 +1,844 @@
+<?xml version='1.0' encoding='EUC-KR' standalone='yes'?>
+<HISTORYSQL>
+<!--  적용이력 : 부품  > 상위 과제  List > 참조포함 -->
+	<apply.part.version>
+		<note> 부품의 버전, 참조 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+				select version, versionoid, masteroid, reference
+				from
+				(
+					select y.ida2a2,
+					nvl(y.version, '') version, 
+					y.internalversion, 
+					y.classnamea2a2 ||':'||y.ida2a2 versionoid, 
+					x.classnamea2a2 ||':'||x.ida2a2 masteroid, 
+					(case when x.standardtype in ('A','B') and x.standarddate >= y.createstampa2 then 'Y' else 'N' end) isstandard,
+					'N' reference 
+					from sispartmaster x, sispartversion y 
+					where x.ida2a2 = y.ida3a4 and x.ida2a2 = ?
+					and y.partstate like '%5'
+					union 
+					select y.ida2a2, 
+					nvl(y.version, '') version,
+					y.internalversion, 
+					y.classnamea2a2 ||':'||y.ida2a2 versionoid, 
+					x.classnamea2a2 ||':'||x.ida2a2 masteroid, 
+					'N' isstandard,
+					'Y' reference
+					from sispartmaster x, sispartversion y, sispartreflink z 
+					where x.ida2a2 = y.ida3a4 and z.ida3b5 = ? 
+					and   y.ida2a2	= z.ida3a5
+					and y.partstate like '%5'
+				)
+				order by versionoid desc
+		]]> </sql>
+	</apply.part.version>
+
+   <apply.part.findproject>
+	<note> 부품 버젼의 상위과제 리스트</note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+	    	 select  
+			       a.linkcreatedate,  
+			       a.parentobjectname,  
+			       a.parentversion,  
+			       a.parentinternalversion,  
+			       a.parentapplydate,  
+			       a.parentversionoid,  
+			       a.parentmasteroid,  
+			       b.projectusage usagetype,  
+			       a.isstandard,
+			       decode( b.projectusage, 'APP', '재사용', b.datacodekorname ) projectusage,  
+			       decode( a.projectstate,  null, '', 'N5','채번','P5','Phase','D5','확정','M5','변경','T5','확정전변경') projectstate,  
+			       decode( b.ida2a2, null,'', decode( b.projectusage,'FD','', 'APP', 'No', 'Yes' ) ) blackbox 
+			  from  
+			  (   
+			     select distinct  
+			       a.ida3b5 ida2a2,  
+			       linkcreatedate,  
+			       v.projectstate,  
+			       case when a.linkcreatedate >= (select x.standarddate from sispartmaster x, sispartversion y 
+			                 where x.ida2a2 = y.ida3a4 and y.ida2a2 = ?) then '표준' else '비표준' end isstandard,
+			       m.objectname parentobjectname,  
+			       nvl( v.version,'') parentversion,  
+			       v.internalversion parentinternalversion,  
+			       to_char(linkcreatedate + ?, 'yyyy-mm-dd') parentapplydate,  
+			 	  v.classnamea2a2||':'||v.ida2a2 parentversionoid, 
+			       m.classnamea2a2||':'||m.ida2a2 parentmasteroid 
+			     from  
+			     (
+			  		select 
+			  		a.ida3b5,
+			  		a.createstampa2 linkcreatedate
+			  		from sisstructureinfolink a
+			  		connect by  prior ida3b5 = ida3a5
+			  		start with a.ida3a5 = ?
+			     ) a, sisprojectmaster m, sisprojectversion v
+			 	where m.pjttype = 'P'
+			 	and a.ida3b5 = v.ida2a2 
+			 	and m.ida2a2 = v.ida3a4
+			 	and m.deleteflag <> 'Y'
+			    and v.projectstate like '%5'
+			  ) a,
+			  (
+			    select l.ida3a5 ida3a5, c.datacodekorname, l.projectusage,l.ida2a2, l.totalloc, l.insertloc, l.changeloc from sisappliedhistorylink l,
+			    ( select c.* from commcode a, commcodelink b, commcode c where a.datacode = 'APPLIEDUSAGE'and a.code = 'MASTER' and a.ida2a2 = b.ida3b5	and c.ida2a2 = b.ida3a5) c
+			    where l.projectusage = c.datacode(+)
+			    and ida3b5 = ?
+			  ) b
+			  where a.ida2a2 = b.ida3a5(+)
+			  order by linkcreatedate desc , parentobjectname desc, parentinternalversion desc
+		]]> </sql>
+	</apply.part.findproject>
+	
+	<apply.standpart.findproject>
+	<note> 부품 버젼의 상위과제 리스트</note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+	    	 select  
+			       a.linkcreatedate,  
+			       a.parentobjectname,  
+			       a.parentversion,  
+			       a.parentinternalversion,  
+			       a.parentapplydate,  
+			       a.parentversionoid,  
+			       a.parentmasteroid,  
+			       b.projectusage usagetype,  
+			       '표준' isstandard,
+			       decode( b.projectusage, 'APP', '재사용', b.datacodekorname ) projectusage,  
+			       decode( a.projectstate,  null, '', 'N5','채번','P5','Phase','D5','확정','M5','변경','T5','확정전변경') projectstate,  
+			       decode( b.ida2a2, null,'', decode( b.projectusage,'FD','', 'APP', 'No', 'Yes' ) ) blackbox  
+			  from  
+			  (   
+			     select distinct  
+			       a.ida3b5 ida2a2,  
+			       linkcreatedate,  
+			       v.projectstate,  
+			       m.objectname parentobjectname,  
+			       nvl( v.version,'') parentversion,  
+			       v.internalversion parentinternalversion,  
+			       to_char(linkcreatedate + ?, 'yyyy-mm-dd') parentapplydate,  
+			 	  v.classnamea2a2||':'||v.ida2a2 parentversionoid, 
+			       m.classnamea2a2||':'||m.ida2a2 parentmasteroid 
+			     from  
+			     ( 		 
+			  		select    
+			  		a.ida3b5,  
+			  		a.createstampa2 linkcreatedate 
+			  		from sisstructureinfolink a  
+			  		connect by  prior ida3b5 = ida3a5   
+			  		start with a.ida3a5 = ?  
+			     ) a, sisprojectmaster m, sisprojectversion v 
+			 	where m.pjttype = 'P' 
+			 	and a.ida3b5 = v.ida2a2 
+			 	and m.ida2a2 = v.ida3a4 
+			 	and linkcreatedate >= (select m.standarddate from sispartmaster m, sispartversion v where m.ida2a2 = v.ida3a4 and v.ida2a2 = ?)
+			 	and m.deleteflag <> 'Y'
+			    and v.projectstate like '%5' 
+			  ) a,  
+			  (  
+			    select l.ida3a5 ida3a5, c.datacodekorname, l.projectusage,l.ida2a2, l.totalloc, l.insertloc, l.changeloc from sisappliedhistorylink l, 
+			    ( select c.* from commcode a, commcodelink b, commcode c where a.datacode = 'APPLIEDUSAGE'and a.code = 'MASTER' and a.ida2a2 = b.ida3b5	and c.ida2a2 = b.ida3a5) c  
+			    where l.projectusage = c.datacode(+)  
+			    and ida3b5 = ?  
+			  ) b  
+			  where a.ida2a2 = b.ida3a5(+)  
+			  order by linkcreatedate desc , parentobjectname desc, parentinternalversion desc 
+		]]> </sql>
+	</apply.standpart.findproject>
+	
+	<apply.part.ref.findproject>
+		<note> 부품 참조의 상위과제 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+				 select   
+				       a.linkcreatedate,   
+				       a.parentobjectname,   
+				       a.parentversion,   
+				       a.parentinternalversion,   
+				       a.parentapplydate,   
+				       a.parentversionoid,   
+				       a.parentmasteroid,   
+				       b.projectusage usagetype,   
+				       a.isstandard,
+				       '참조' projectusage,   
+					   decode( a.projectstate,  null, '', 'N5','채번','P5','Phase','D5','확정','M5','변경','T5','확정전변경') projectstate,  
+				       decode( b.ida2a2, null,'', decode( b.projectusage,'FD','', 'APP', 'No', 'Yes' ) ) blackbox  
+				  from   
+				  (     
+				     select distinct   
+				     a.ida3b5 ida2a2,   
+				     linkcreatedate,   
+				     v.projectstate,   
+				     case when linkcreatedate >= (select x.standarddate from sispartmaster x, sispartversion y 
+				            where x.ida2a2 = y.ida3a4 and y.ida2a2 = ?) then '표준' else '비표준' end isstandard,
+				     m.objectname parentobjectname,   
+				     nvl( v.version,'') parentversion,   
+				     v.internalversion parentinternalversion,   
+				     to_char(linkcreatedate + ?, 'yyyy-mm-dd') parentapplydate,   
+					 v.classnamea2a2||':'||v.ida2a2 parentversionoid, 
+				     m.classnamea2a2||':'||m.ida2a2 parentmasteroid     
+				     from   
+				     ( 	 
+					    select   
+				  		a.ida3b5,   
+				  		a.createstampa2 linkcreatedate 
+				  		from sisstructureinfolink a   
+				  		connect by  prior ida3b5 = ida3a5    
+				  		start with a.ida3a5 = ?   
+				     ) a, sisprojectmaster m, sisprojectversion v 
+				     where m.pjttype = 'P' 
+					 and a.ida3b5 = v.ida2a2 
+					 and m.ida2a2 = v.ida3a4  
+					 and m.deleteflag <> 'Y'
+				     and v.projectstate like '%5'  
+				  ) a,   
+				  (   
+				    select l.ida3a5 ida3a5, l.projectusage,l.ida2a2, l.totalloc, l.insertloc, l.changeloc from sisappliedhistorylink l   
+				    where ida3b5 = ?  
+				  ) b   
+				  where a.ida2a2 = b.ida3a5(+)  
+				  and b.projectusage = 'FD'  
+				  order by linkcreatedate desc, parentobjectname desc, parentinternalversion desc
+		]]> </sql>
+	</apply.part.ref.findproject>
+
+<!--  적용이력 : 부품군  > 상위 과제  List  -->
+
+	<apply.partGroup.version>
+		<note> 부품군의 버전 리스트</note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			       select 
+				   	   y.version, 
+				   	   y.internalversion, 
+				   	   y.classnamea2a2 ||':'||y.ida2a2 versionoid, 
+				   	   x.classnamea2a2 ||':'||x.ida2a2 masteroid 
+				   from sispartmaster x, sispartversion y 
+				   where x.ida2a2 = y.ida3a4 
+				   and x.ida2a2 = ? 
+				   and y.partstate like '%5' 
+				   order by versionoid desc
+		]]> </sql>
+	</apply.partGroup.version>
+
+	<apply.partGroup.findproject>
+		<note> 부품군 버전들의  상위과제 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		  	  select 
+			           linkcreatedate, 
+			  	       parentobjectname, 
+			           parentversion, 
+			           parentinternalversion, 
+			           parentapplydate, 
+			           parentversionoid, 
+			           parentmasteroid, 
+			  	       projectusage, 
+			  	       projectstate, 
+			  	       pjt_state, 
+			  	       ( case when pjt_state != 'D5' and count(nochange) = 0 and count(change) = 0 then ''  
+			  	         when pjt_state = 'D5' and count(nochange) = 0 and count(change) = 0 then 'No'   
+			  	         when  count(change) > 0 then 'No' else 'Yes' end ) blackbox 
+			   from  
+			   (  
+			          select  
+			  		  b.parentobjectname,  
+			  		  b.parentversion,  
+			  		  b.parentinternalversion,  
+			  		  b.parentapplydate,  
+			  		  b.parentversionoid,  
+			  		  b.parentmasteroid,  
+			  		  b.linkcreatedate,  
+			  		  b.projectstate pjt_state,  
+			  		  decode( b.projectstate,  null, '', 'N5','채번','P5','Phase','D5','확정','M5','변경','T5','확정전변경')projectstate,   
+			  		  c.datacodekorname, projectusage, 
+			  		  decode(a.linkida2a2, null, null, decode( projectusage,'N5', null, decode( nvl(a.insertloc,0) + nvl(a.changeloc,0), 0, decode(nvl(a.totalloc,0), 0, null, 1), null) ) ) nochange,   
+			  		  decode(a.linkida2a2, null, null, decode( projectusage,'N5', null, decode( nvl(a.insertloc,0) + nvl(a.changeloc,0), 0, null, decode(nvl(a.totalloc,0), 0, null, 1)) ) ) change   
+			  		  from   
+			  		  (   
+			  		    select ida2a2 linkida2a2, ida3a5,projectusage, insertloc, changeloc, totalloc  from sisappliedhistorylink where ida3b5 = ? 
+			  		  ) a,   
+			  		  ( 		   
+			  		      select distinct  
+			  		      a.ida3b5,  
+			  		      linkcreatedate, 
+			  		      v.projectstate,  
+			  		      m.objectname parentobjectname,  
+			  		      v.version parentversion, 
+			  		      v.internalversion parentinternalversion,  
+			  		      to_char(linkcreatedate + ?,'yyyy-mm-dd') parentapplydate,  
+			 			  v.classnamea2a2||':'||v.ida2a2 parentversionoid,  
+			              m.classnamea2a2||':'||m.ida2a2 parentmasteroid      
+			  	        from  
+			  	        (  
+			  			      select  
+			  			      a.ida3b5,  
+			  		          a.createstampa2 linkcreatedate  
+			  		          from sisstructureinfolink a 
+			  				  connect by  prior ida3b5 = ida3a5  
+			            	  start with a.ida3a5 = ? 
+			  			) a, sisprojectmaster m, sisprojectversion v 
+			  	        where a.ida3b5 = v.ida2a2 
+			 			and m.ida2a2 = v.ida3a4 
+			 			and m.deleteflag <> 'Y'
+			 			and m.pjttype = 'P' 			 
+			  		  ) b,  
+			  		  ( select c.datacode, c.datacodekorname from commcode a, commcodelink b, commcode c where a.datacode = 'APPLIEDUSAGE'   
+			  		  and a.code = 'MASTER' and a.ida2a2 = b.ida3b5	and c.ida2a2 = b.ida3a5 ) c 
+	  		  		  where b.ida3b5 = a.ida3a5(+)  
+	  		  		  and b.projectstate like '%5' 
+	  		  		  and a.projectusage = c.datacode(+) 
+	  		   )  
+			   group by  linkcreatedate, parentobjectname, parentversion,  
+			             parentinternalversion, parentapplydate, parentversionoid, parentmasteroid, projectusage, projectstate, pjt_state  
+			   order by  linkcreatedate desc
+		]]> </sql>
+	</apply.partGroup.findproject>
+
+<!--  적용이력 : 시스템  > 상위 과제  List  -->
+
+	<apply.system.version>
+		<note> 시스템의 버전 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			 select   
+			 nvl(y.version,'') version,  
+			 y.internalversion,  
+			 y.classnamea2a2 ||':'||y.ida2a2 versionoid,  
+			 x.classnamea2a2 ||':'||x.ida2a2 masteroid  
+			 from sisprojectmaster x, sisprojectversion y   
+			 where x.ida2a2 = y.ida3a4   
+			 and x.ida2a2 = ?  
+			 and y.projectstate like '%5'  
+			 order by versionoid desc
+		]]> </sql>
+	</apply.system.version>
+	
+	<apply.system.findproject>
+		<note> 시스템의 버전 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			 	select distinct  
+	    		       linkcreatedate, 
+	    		       m.objectname parentobjectname,     
+	    	 		   nvl(v.version,'') parentversion,   
+	    	 		   v.internalversion parentinternalversion,   
+	    	 		   to_char(linkcreatedate + ?, 'yyyy-mm-dd') parentapplydate,   
+	    	 		   v.classnamea2a2||':'||v.ida2a2 parentversionoid, 
+	    	 		   m.classnamea2a2||':'||m.ida2a2 parentmasteroid   
+	    	 	from   
+	    	 	(   
+	    	 	  select   
+	    	 	  a.ida3b5,   
+	    	 	  a.createstampa2 linkcreatedate 
+	    	 	  from sisstructureinfolink a 
+	    	 	  connect by  prior ida3b5 = ida3a5   
+	    	 	  start with a.ida3a5 = ? 
+	    	 	) a, sisprojectmaster m, sisprojectversion v 
+	    		where a.ida3b5 = v.ida2a2 
+	    		and m.ida2a2 =v.ida3a4 
+	    		and m.pjttype = 'P'	 
+	    		and m.deleteflag <> 'Y'
+	    		and v.projectstate like '%5' 
+	    		order by linkcreatedate desc, parentobjectname desc, parentinternalversion desc
+		]]> </sql>
+	</apply.system.findproject>
+
+<!--  적용이력 : 부품  > 상위 모델  List  -->
+
+	<apply.part.ref.findmodel>
+	<note> 부품의 상위 모델 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+	             select    
+                 a.pjttype,     
+		         a.linkcreatedate,     
+		     	 a.modelcode,   
+		     	 a.parentobjectname,   
+		     	 a.modelprojectname,   
+		         a.parentversion,    
+		         a.parentapplydate,     
+		         a.parentversionoid,     
+		         a.parentmasteroid,   
+		     	 a.projectversionoid,     
+		         a.projectmasteroid,     
+		         '참조' projectusage, 
+		         decode( a.modelstate,  null, '', 'N5','등록','R5','등록','M5','변경') modelstate 
+		       from     
+		       (       
+		         select distinct   
+		         m.pjttype,   
+		     	 a.ida3b5 ida2a2,     
+		         linkcreatedate,   
+		         mv.modelstate,  
+		     	 mm.modelcode, 
+		     	 (select max(model_name) from cis_model_eai_if where model_code = mm.modelcode) parentobjectname,   
+		     	 m.objectname modelprojectname,  
+		         nvl( v.version,'') parentversion, 
+		         to_char(mv.appliedDate + ?, 'yyyy-mm-dd') parentapplydate, 
+		         mv.classnamea2a2||':'||mv.ida2a2 parentversionoid,    
+		         mm.classnamea2a2||':'||mm.ida2a2 parentmasteroid,   
+		     	 v.classnamea2a2||':'||v.ida2a2 projectversionoid,    
+		         m.classnamea2a2||':'||m.ida2a2 projectmasteroid   
+		         from   
+		         ( 		    
+		       	    select       
+		       		a.ida3b5,     
+		       		a.createstampa2 linkcreatedate    
+		       		from sisstructureinfolink a     
+		       		connect by  prior ida3b5 = ida3a5   
+		       		start with a.ida3a5 = ?    
+		          ) a, sisprojectmaster m, sisprojectversion v, sismodelmaster mm, sismodelversion mv, sisprojectversion v2
+		      	   where a.ida3b5 = v2.ida2a2    
+		      	   and v.ida2a2 = mv.ida3b4
+		      	   and m.ida2a2 = v.ida3a4   
+		     	   and v2.ida2a2 = decode(mv.classnamekeyc4, null, mv.ida3b4, mv.ida3c4)  
+		     	   and mm.ida2a2 = mv.ida3a4    
+		     	   and mm.deleteflag <> 'Y'
+		           and mv.modelstate like '%5' 
+		        ) a,     
+		       (     
+		         select l.ida3a5, l.projectusage from sisappliedhistorylink l     
+		         where ida3b5 = ? 
+		       ) b 
+		       where a.ida2a2 = b.ida3a5(+) 
+		       and b.projectusage = 'FD' 
+		       order by linkcreatedate desc, parentobjectname desc, parentapplydate desc
+		]]> </sql>
+	</apply.part.ref.findmodel>
+
+	<apply.part.findmodel>
+		<note> 부품 버전의 모델 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			   select    
+		       a.pjttype,    
+		       a.linkcreatedate,    
+		       a.modelcode,  
+		       a.parentobjectname,  
+		       a.modelprojectname,  
+		       a.parentversion,  
+		       a.parentapplydate,    
+		       a.parentversionoid,    
+		       a.parentmasteroid,  
+		       a.projectversionoid,    
+		       a.projectmasteroid,    
+		       b.datacodekorname projectusage,    
+		       decode( a.modelstate,  null, '', 'N5','등록','R5','등록','M5','변경') modelstate 
+		       from    
+		       (   
+		       select distinct  
+		       m.pjttype,  
+		       a.ida3b5 ida2a2,    
+		       linkcreatedate,   
+		       mv.modelstate,  
+		       mm.modelcode,  
+		       (select max(model_name) from cis_model_eai_if where model_code = mm.modelcode) parentobjectname,  
+		       m.objectname modelprojectname,    
+		       nvl( v.version,'') parentversion,    
+		       to_char(mv.appliedDate + ?, 'yyyy-mm-dd') parentapplydate,    
+		       mv.classnamea2a2||':'||mv.ida2a2 parentversionoid,   
+		       mm.classnamea2a2||':'||mm.ida2a2 parentmasteroid,  
+		       v.classnamea2a2||':'||v.ida2a2 projectversionoid,   
+		       m.classnamea2a2||':'||m.ida2a2 projectmasteroid  
+		       from  
+		       ( 		   
+		      	 select      
+		      	 a.ida3b5,    
+		      	 a.createstampa2 linkcreatedate   
+		      	 from sisstructureinfolink a    
+		      	 connect by  prior ida3b5 = ida3a5  
+		      	 start with a.ida3a5 = ?  
+		       ) a, sisprojectmaster m, sisprojectversion v, sismodelmaster mm, sismodelversion mv, sisprojectversion v2
+		     	where a.ida3b5 = v2.ida2a2   
+		     	and v.ida2a2 = mv.ida3b4
+		     	and m.ida2a2 = v.ida3a4  
+		        and v2.ida2a2 = decode(mv.classnamekeyc4, null, mv.ida3b4, mv.ida3c4) 
+		    	and mm.ida2a2 = mv.ida3a4   
+		    	and mm.deleteflag <> 'Y'
+		        and mv.modelstate like '%5' 
+		      ) a,    
+		      (    
+		        select l.ida3a5 ida3a5, c.datacodekorname, l.projectusage from sisappliedhistorylink l,   
+		        ( select c.* from commcode a, commcodelink b, commcode c where a.datacode = 'APPLIEDUSAGE'and a.code = 'MASTER' and a.ida2a2 = b.ida3b5	and c.ida2a2 = b.ida3a5) c    
+		        where l.projectusage = c.datacode(+)    
+		        and ida3b5 = ?  
+		      ) b  
+		      where a.ida2a2 = b.ida3a5(+)  
+		      order by linkcreatedate desc, parentobjectname desc, parentapplydate desc
+		]]> </sql>
+	</apply.part.findmodel>
+	
+	<apply.standpart.findmodel>
+		<note> 부품 버전의 모델 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			   select    
+		       a.pjttype,    
+		       a.linkcreatedate,    
+		       a.modelcode,  
+		       a.parentobjectname,  
+		       a.modelprojectname,  
+		       a.parentversion,  
+		       a.parentapplydate,    
+		       a.parentversionoid,    
+		       a.parentmasteroid,  
+		       a.projectversionoid,    
+		       a.projectmasteroid,    
+		       b.datacodekorname projectusage,    
+		       decode( a.modelstate,  null, '', 'N5','등록','R5','등록','M5','변경') modelstate 
+		       from    
+		       (   
+		       select distinct  
+		       m.pjttype,  
+		       a.ida3b5 ida2a2,    
+		       linkcreatedate,   
+		       mv.modelstate,  
+		       mm.modelcode,  
+		       (select max(model_name) from cis_model_eai_if where model_code = mm.modelcode) parentobjectname,  
+		       m.objectname modelprojectname,    
+		       nvl( v.version,'') parentversion,    
+		       to_char(mv.appliedDate + ?, 'yyyy-mm-dd') parentapplydate,    
+		       mv.classnamea2a2||':'||mv.ida2a2 parentversionoid,   
+		       mm.classnamea2a2||':'||mm.ida2a2 parentmasteroid,  
+		       v.classnamea2a2||':'||v.ida2a2 projectversionoid,   
+		       m.classnamea2a2||':'||m.ida2a2 projectmasteroid  
+		       from  
+		       ( 		   
+		      	 select      
+		      	 a.ida3b5,    
+		      	 a.createstampa2 linkcreatedate   
+		      	 from sisstructureinfolink a    
+		      	 connect by  prior ida3b5 = ida3a5  
+		      	 start with a.ida3a5 = ?  
+		       ) a, sisprojectmaster m, sisprojectversion v, sismodelmaster mm, sismodelversion mv, sisprojectversion v2
+		     	where a.ida3b5 = v2.ida2a2 
+		     	and v.ida2a2 = mv.ida3b4
+		     	and m.ida2a2 = v.ida3a4 
+		        and v2.ida2a2 = decode(mv.classnamekeyc4, null, mv.ida3b4, mv.ida3c4) 
+		    	and mm.ida2a2 = mv.ida3a4   
+		    	and linkcreatedate >= (select m.standarddate from sispartmaster m, sispartversion v where m.ida2a2 = v.ida3a4 and v.ida2a2 = ? )
+		    	and mm.deleteflag <> 'Y'
+		        and mv.modelstate like '%5' 
+		      ) a,    
+		      (    
+		        select l.ida3a5 ida3a5, c.datacodekorname, l.projectusage from sisappliedhistorylink l,   
+		        ( select c.* from commcode a, commcodelink b, commcode c where a.datacode = 'APPLIEDUSAGE'and a.code = 'MASTER' and a.ida2a2 = b.ida3b5	and c.ida2a2 = b.ida3a5) c    
+		        where l.projectusage = c.datacode(+)    
+		        and ida3b5 = ?  
+		      ) b  
+		      where a.ida2a2 = b.ida3a5(+)  
+		      order by linkcreatedate desc, parentobjectname desc, parentapplydate desc
+		]]> </sql>
+	</apply.standpart.findmodel>
+
+<!--  적용이력 : 부품군  > 상위 모델  List  -->
+	<apply.partGroup.findmodel>
+		<note> 부품군의 상위 모델 리스트</note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		     select   distinct 
+		     b.pjttype, 
+			 b.linkcreatedate,  
+			 b.modelcode,  
+		 	 b.parentobjectname,    
+			 b.modelprojectname,  
+		 	 b.parentversion,    
+		 	 b.parentapplydate,  
+			 decode( b.modelstate,  null, '', 'N5','등록','R5','등록','M5','변경') modelstate,  
+		 	 b.parentversionoid,    
+		 	 b.parentmasteroid,  
+			 b.projectversionoid,    
+		 	 b.projectmasteroid 
+		 	 from     
+		 	 (     
+		 	    select ida3a5 from sisappliedhistorylink where ida3b5 = ? 
+		 	 ) a,     
+		 	 ( 		     
+				 select distinct   
+				 m.pjttype,   
+				 a.ida3b5,     
+			     linkcreatedate,    
+				 v.projectstate,  
+			     mv.modelstate,   
+				 mm.modelcode,   
+				 (select max(model_name) from cis_model_eai_if where model_code = mm.modelcode) parentobjectname,   
+				 m.objectname modelprojectname,     
+			     nvl( v.version,'') parentversion,     
+			     to_char(mv.appliedDate + ?, 'yyyy-mm-dd') parentapplydate,     
+			 	 mv.classnamea2a2||':'||mv.ida2a2 parentversionoid,    
+			     mm.classnamea2a2||':'||mm.ida2a2 parentmasteroid,   
+				 v.classnamea2a2||':'||v.ida2a2 projectversionoid,    
+			     m.classnamea2a2||':'||m.ida2a2 projectmasteroid   
+			     from 
+			     ( 
+			  		select 
+			  		a.ida3b5, 
+			  		a.createstampa2 linkcreatedate 
+			  		from sisstructureinfolink a 
+			  		connect by  prior ida3b5 = ida3a5 
+			  		start with a.ida3a5 = ? 
+			     ) a, sisprojectmaster m, sisprojectversion v, sismodelmaster mm, sismodelversion mv, sisprojectversion v2
+			 	 where a.ida3b5 = v2.ida2a2
+				 and v.ida2a2 = mv.ida3b4
+			 	 and m.ida2a2 = v.ida3a4 
+				 and v2.ida2a2 = decode(mv.classnamekeyc4, null, mv.ida3b4, mv.ida3c4) 
+				 and mm.deleteflag <> 'Y'
+				 and mm.ida2a2 = mv.ida3a4 
+		 	 ) b 
+		 	 where b.ida3b5 = a.ida3a5(+) 
+		 	 and b.modelstate like '%5' 
+		     order by  linkcreatedate desc
+		]]> </sql>
+	</apply.partGroup.findmodel>
+
+<!--  적용이력 : 시스템  > 상위 모델  List  -->
+	<apply.system.findmodel>
+		<note> 시스템의 상위 모델 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			 	select distinct    
+	    		       linkcreatedate,   
+	    			   mm.modelcode,  
+	    			   decode( mv.modelstate, null, '', 'N5','등록','R5','등록','M5','변경') modelstate,  
+	    			   (select max(model_name) from cis_model_eai_if where model_code = mm.modelcode) parentobjectname,   
+	    		       m.objectname modelprojectname,       
+	    	 		   nvl(v.version,'') parentversion, 
+	    	 		   to_char(linkcreatedate + ?, 'yyyy-mm-dd') parentapplydate,     
+	    	 		   v.classnamea2a2||':'||v.ida2a2 projectversionoid,   
+	    	 		   m.classnamea2a2||':'||m.ida2a2 projectmasteroid,  
+	    			   mv.classnamea2a2||':'||mv.ida2a2 parentversionoid,    
+	    			   mm.classnamea2a2||':'||mm.ida2a2 parentmasteroid   
+	    	 	from     
+	    	 	(     
+	    	 	  select     
+	    	 	  a.ida3b5,     
+	    	 	  a.createstampa2 linkcreatedate   
+	    	 	  from sisstructureinfolink a   
+	    	 	  connect by  prior ida3b5 = ida3a5     
+	    	 	  start with a.ida3a5 = ?  
+	    	 	) a, sisprojectmaster m, sisprojectversion v, sismodelmaster mm, sismodelversion mv, sisprojectversion v2
+	    		where a.ida3b5 = v2.ida2a2  
+	    		and v.ida2a2 = mv.ida3b4    
+	    		and m.ida2a2 =v.ida3a4   
+	    		and v2.ida2a2 = decode(mv.classnamekeyc4, null, mv.ida3b4, mv.ida3c4) 
+	    		and m.pjttype = 'P'
+	    		and mv.modelstate like '%5'	    		
+	    		and mm.ida2a2 = mv.ida3a4
+	    		and mm.deleteflag <> 'Y'
+	    		order by linkcreatedate desc, parentobjectname desc, parentapplydate desc
+		]]> </sql>
+	</apply.system.findmodel>
+	
+<!--  적용이력 : 부품 ,부품군 > 상위 부품군  List  -->
+	<apply.part.partGroup.version>
+		<note> 부품, 부품군의 상위 부품군 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			 select 
+			 nvl(y.version,'') version,  
+			 y.internalversion,  
+			 y.classnamea2a2 ||':'||y.ida2a2 versionoid,  
+			 x.classnamea2a2 ||':'||x.ida2a2 masteroid  
+			 from sispartmaster x, sispartversion y   
+			 where x.ida2a2 = y.ida3a4   
+			 and x.ida2a2 = ?  
+			 and y.partstate like '%5'  
+			 order by y.ida2a2 desc
+		]]> </sql>
+	</apply.part.partGroup.version>
+	
+	<apply.part.partGroup.findpartGroup>
+		<note> 부품, 부품군의 상위 부품군 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			  select distinct 
+				       linkcreatedate, 
+				       m.objectname parentobjectname,   
+			 		   nvl(v.version,'') parentversion, 
+			 		   v.internalversion parentinternalversion, 
+			 		   to_char(linkcreatedate + ?, 'yyyy-mm-dd') parentapplydate,   
+			 		   v.classnamea2a2||':'||v.ida2a2 parentversionoid, 
+			 		   m.classnamea2a2||':'||m.ida2a2 parentmasteroid 
+			  from   
+			  (   
+			 	  select   
+			 	  a.ida3b5, 
+			 	  a.createstampa2 linkcreatedate 
+			 	  from sisstructureinfolink a  
+			 	  connect by  prior ida3b5 = ida3a5   
+			 	  start with a.ida3a5 = ? 
+			   ) a, sispartmaster m, sispartversion v 
+			   where a.ida3b5 = v.ida2a2 
+			   and m.ida2a2 = v.ida3a4 
+			   and m.deleteflag <> 'Y'
+			   and v.partstate like '%5' 
+			   order by linkcreatedate desc, parentobjectname desc, parentinternalversion desc
+		]]> </sql>
+	</apply.part.partGroup.findpartGroup>
+	
+	<apply.standpart.findpartGroup>
+		<note> 부품, 부품군의 상위 부품군 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			  select distinct 
+				       linkcreatedate, 
+				       m.objectname parentobjectname,   
+			 		   nvl(v.version,'') parentversion, 
+			 		   v.internalversion parentinternalversion, 
+			 		   to_char(linkcreatedate + ?, 'yyyy-mm-dd') parentapplydate,   
+			 		   v.classnamea2a2||':'||v.ida2a2 parentversionoid, 
+			 		   m.classnamea2a2||':'||m.ida2a2 parentmasteroid 
+			  from   
+			  (   
+			 	  select   
+			 	  a.ida3b5, 
+			 	  a.createstampa2 linkcreatedate 
+			 	  from sisstructureinfolink a  
+			 	  connect by  prior ida3b5 = ida3a5   
+			 	  start with a.ida3a5 = ? 
+			   ) a, sispartmaster m, sispartversion v 
+			   where a.ida3b5 = v.ida2a2 
+			   and m.ida2a2 = v.ida3a4 
+			   and linkcreatedate >= (select m.standarddate from sispartmaster m, sispartversion v where m.ida2a2 = v.ida3a4 and v.ida2a2 = ?)
+			   and m.deleteflag <> 'Y'
+			   and v.partstate like '%5' 
+			   order by linkcreatedate desc, parentobjectname desc, parentinternalversion desc
+		]]> </sql>
+	</apply.standpart.findpartGroup>
+	
+<!--  적용이력 : 부품, 부품군  > 사용신청 건수 -->
+
+	<apply.part.partGroup.useReuqust>
+		<note> 사용신청 건수 계산하기 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		    select r.ida3a4 masteroid  
+	        from sispartmaster m,sisrequest r, approval ap  
+	        where m.ida2a2 = ?  
+	        and m.ida2a2 = r.ida3a4  
+	        and r.requesttype in ('PARTUSE','PARTGROUPUSE')  
+	        and ap.statestate = 'APPROVAL_COMPLETED'  
+	        and ap.ida3b8 = r.ida2a2  
+		]]> </sql>
+	</apply.part.partGroup.useReuqust>
+	
+<!--  적용이력 : 부품군 > 상세리스트  -->
+	
+	<apply.partGroup.detail>
+		<note> 부품군의 상세리스트 팝업 띄우기 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+	      select isstandard, sumfiles, (sumfiles - insertfiles - changefiles) sumsamefiles,
+		        totalpart,  sumloc,   (sumloc   - insertloc   - changeloc)   sumsameloc
+		  from(  
+			  select isstandard, sum(totalfiles) sumfiles, sum(insertfiles) insertfiles, sum(changefiles) changefiles,  
+			 	                    sum(totalloc)   sumloc,   sum(insertloc)   insertloc,   sum(changeloc) changeloc, count(ida2a2)  totalpart  
+			  from  
+			  (  
+				   select b.isstandard, a.ida2a2,  
+				          nvl(b.totalfiles,0) totalfiles, nvl(b.insertfiles,0) insertfiles, nvl(b.deletefiles,0) deletefiles, nvl(b.changefiles,0) changefiles,  
+				          nvl(b.totalloc,0) 	totalloc,	nvl(b.insertloc,0)	 insertloc,   nvl(b.deleteloc,0)   deleteloc, 	nvl(b.changeloc,0)   changeloc  
+				   from  
+				   (  
+				  	 select ida2a2  
+				  	 from  
+				  	 (  
+				  	     select  
+				  	     v.ida2a2,  
+				  		 a.ida3b5 parentida2a2  
+				  		 from  sispartversion v, sisstructureinfolink a  
+				  	     where a.ida3a5 = v.ida2a2  
+				  	 ) a  
+				  	 start with a.parentida2a2 = ? 
+				  	 connect by  prior a.ida2a2 = parentida2a2  
+				   ) a, sisappliedhistorylink b  
+				   where b.ida3a5 = ?  
+				   and a.ida2a2 = b.ida3b5  
+				   and 'P'=( select x.parttype from sispartmaster x, sispartversion y  where x.ida2a2 = y.ida3a4  and y.ida2a2 = a.ida2a2 )  
+			  )   
+			  group by isstandard 
+		  )  		  
+		]]> </sql>
+	</apply.partGroup.detail>
+	
+	<!--  적용이력 : 부품  > 상세리스트  -->
+	
+	<apply.part.detail>
+		<note> 부품의 상세리스트 팝업 띄우기 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		  select sumfiles, (sumfiles - insertfiles - changefiles) sumsamefiles,
+		                     sumloc,   (sumloc   - insertloc   - changeloc)   sumsameloc
+          from( 
+			 select sum(totalfiles) sumfiles, sum(insertfiles) insertfiles, sum(changefiles) changefiles,  
+			              sum(totalloc)   sumloc,   sum(insertloc)   insertloc,   sum(changeloc) changeloc 
+			 from
+			 ( 
+			    select nvl(b.totalfiles,0) totalfiles, nvl(b.insertfiles,0) insertfiles, nvl(b.deletefiles,0) deletefiles, nvl(b.changefiles,0) changefiles,  
+			    nvl(b.totalloc,0) 	totalloc,	nvl(b.insertloc,0)	 insertloc,   nvl(b.deleteloc,0)   deleteloc, 	nvl(b.changeloc,0)   changeloc   
+			    from sisappliedhistorylink b  
+			    where  b.ida3b5 = ? and b.ida3a5 = ? 
+			 ) 
+		 ) 
+		]]> </sql>
+	</apply.part.detail>    
+	
+<!-- 적용이력 : 표준부품 > 상위 부품군 List -->
+	
+	<!--  적용이력 : 표준부품 여부 -->
+	<apply.standPart>
+		<note> 부품의 상세리스트 팝업 띄우기 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		     select x.standardtype
+		     from sispartmaster x
+			 where x.ida2a2 = ? 
+		]]> </sql>
+	</apply.standPart>    
+	
+	<apply.standPart.version>
+		<note> 부품, 부품군의 상위 부품군 리스트 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+			 select
+			 nvl(y.version,'') version,
+			 y.internalversion,
+			 y.classnamea2a2 ||':'||y.ida2a2 versionoid,
+			 x.classnamea2a2 ||':'||x.ida2a2 masteroid,
+			 'Y' isstandard,
+			 'N' reference
+			 from sispartmaster x, sispartversion y
+			 where x.ida2a2 = y.ida3a4
+			 and x.ida2a2 = ? 
+			 and y.partstate like '%5'
+			 and ( y.createstampa2 >= x.standarddate or 
+			      (y.ida2a2 = (select max(v.ida2a2) from sispartversion v, sispartmaster m where m.ida2a2 = v.ida3a4 and m.ida2a2 = ?
+			                and m.site = 'SIS' and m.standarddate >= v.createstampa2)))
+			 and x.standardtype in ('A','B')
+			 order by y.ida2a2 desc
+		]]> </sql>
+	</apply.standPart.version>
+	
+<!-- 적용이력 : 부품, 부품군 > 사용신청 건수  -->
+
+	<apply.standPart.useReuqust>
+		<note> 사용신청 건수 계산하기 </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		    select r.ida3a4 masteroid  
+	        from sispartmaster m, sisrequest r,  approval ap  
+	        where m.ida2a2  = ?
+	        and m.ida2a2 = r.ida3a4  
+			and ap.ida3b8 = r.ida2a2
+	        and r.requesttype in ('PARTUSE','PARTGROUPUSE')  
+	        and ap.statestate = 'APPROVAL_COMPLETED'  
+			and m.standardtype in ('A','B')
+			and exists (select count(v.ida2a2) from sispartversion v where  m.ida2a2 = v.ida3a4
+								and m.standarddate >= v.createstampa2)
+		]]> </sql>
+	</apply.standPart.useReuqust>
+
+</HISTORYSQL>

@@ -1,0 +1,529 @@
+<?xml version='1.0' encoding='EUC-KR' standalone='yes'?>
+<KPISQL>
+
+	<PROJECT_GRAPH>
+    <note>PROJECT_GRAPH</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select *
+	from KpiProjectGraph
+	where gbmCode = ? 
+		and kpiYear = ?
+	order by kpiQuarter
+    ]]> </sql>
+    </PROJECT_GRAPH>
+    
+    <PROJECT_LIST>
+    <note>PROJECT_LIST</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select u.ida3a4, to_char(u.regDate, 'YYYY.MM.DD') regDate, approvedState, objectName, totalParts, 
+	   totalLoc, totalFiles, datacodeengname, datacodekorname 
+	from (
+		select pl.ida3a4, pl.regDate, pl.approvedState
+		from kpiProjectGraph pg, kpiProjectList pl, kpiprojectgraphListLink pgl
+		where pg.gbmCode = ?
+			and pg.kpiYear = ?
+			and pg.kpiQuarter = ?
+			and pg.ida2a2 = pgl.ida3b5
+			and pgl.ida3a5 = pl.ida2a2
+	) u,commcode cm,SisProjectMaster pm, SisProjectVersion pv
+	where pm.ida2a2 = u.ida3a4
+	and pm.ida3a4 = pv.ida2a2
+	and cm.ida2a2 = pm.grade
+	group by u.ida3a4, regDate, approvedState, objectName, totalParts, totalLoc, totalFiles, datacodeengname, datacodekorname
+	order by regdate
+    ]]> </sql>
+    </PROJECT_LIST>
+    
+    <PROJECT_ALL_LIST>
+    <note>PROJECT_ALL_LIST</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select u.ida3a4, to_char(u.regDate, 'YYYY.MM.DD') regDate, approvedState, objectName, totalParts, 
+	   totalLoc, totalFiles, datacodeengname, datacodekorname 
+	from (
+		select pl.ida3a4, pl.regDate, pl.approvedState
+		from kpiProjectGraph pg, kpiProjectList pl, kpiprojectgraphListLink pgl
+		where pg.gbmCode = ?
+			and pg.kpiYear = ?
+			and pg.ida2a2 = pgl.ida3b5
+			and pgl.ida3a5 = pl.ida2a2
+	) u,commcode cm,SisProjectMaster pm, SisProjectVersion pv
+	where pm.ida2a2 = u.ida3a4
+	and pm.ida3a4 = pv.ida2a2
+	and cm.ida2a2 = pm.grade
+	group by u.ida3a4, regDate, approvedState, objectName, totalParts, totalLoc, totalFiles, datacodeengname, datacodekorname
+	order by regdate
+    ]]> </sql>
+    </PROJECT_ALL_LIST>
+    
+    <DELAY_PROJECT_LIST>
+    <note>DELAY_PROJECT_LIST</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select u.ida3a4, to_char(u.regDate, 'YYYY.MM.DD') regDate, approvedState, objectName, totalParts, 
+	   totalLoc, totalFiles, datacodeengname, datacodekorname 
+	from (
+		select pl.ida3a4, pl.regDate, pl.approvedState
+		from kpiProjectGraph pg, kpiProjectList pl, kpiprojectgraphListLink pgl
+		where pg.gbmCode = ?
+			and pg.kpiYear = ?
+			and pg.kpiQuarter = ?
+			and pg.ida2a2 = pgl.ida3b5
+			and pgl.ida3a5 = pl.ida2a2
+			and pl.approvedState = 'NON'
+			and pl.regDate <= sysdate - 60
+	) u,commcode cm,SisProjectMaster pm, SisProjectVersion pv
+	where pm.ida2a2 = u.ida3a4
+	and pm.ida3a4 = pv.ida2a2
+	and cm.ida2a2 = pm.grade
+	group by u.ida3a4, regDate, approvedState, objectName, totalParts, totalLoc, totalFiles, datacodeengname, datacodekorname
+	order by regdate
+    ]]> </sql>
+    </DELAY_PROJECT_LIST>
+    
+    <CURRNET_PROJECT_GRAPH>
+    <note>CURRNET_PROJECT_GRAPH</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select 'OR:ext.sis.kpi.KpiProjectGraph:'||ida2a2 Oid
+	from KpiProjectGraph
+	where kpiYear = ?
+		and kpiQuarter >= ?
+    ]]> </sql>
+    </CURRNET_PROJECT_GRAPH>
+
+	<SELECT_IDA3A4_TOTAL>
+	<note>getTotalInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+		select ida2a2, ida3a4 
+		from sispartmaster
+		where productname = ?
+		and standardType != 'D'
+	]]> </sql>
+	</SELECT_IDA3A4_TOTAL>
+
+	<SELECT_IDA3A4_STD>
+	<note>getTotalInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+		select ida2a2, ida3a4
+		from sispartmaster
+		where productname = ?
+		and standardType = 'A'
+	]]> </sql>
+	</SELECT_IDA3A4_STD>
+
+	<SELECT_TOTAL>
+	<note>getTotalInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+		select totalParts, totalFiles, totalLoc 
+		from sispartversion
+		where ida2a2 = ?
+	]]> </sql>
+	</SELECT_TOTAL>
+
+	<SELECT_GRADE>
+	<note>getTotalInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+		select standardtype A0, count(*) B0
+		from sispartmaster
+		where productname = ?
+		group by standardtype
+	]]> </sql>
+	</SELECT_GRADE>
+
+	<SELECT_EXISTINFO>
+	<note>getExistInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+		select * 
+		from kpistandardgraph
+		where gbmcode = ?
+		and kpiyear = ?
+		and kpiquarter = ?
+		and productname = ?
+	]]> </sql>
+	</SELECT_EXISTINFO>
+
+	<SELECT_STDGRAPHINFO>
+	<note>getStdGraphInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+		select * 
+		from kpistandardgraph
+		where productname = ?
+		and kpiyear = ?
+		and kpiQuarter = ?
+	]]> </sql>
+	</SELECT_STDGRAPHINFO>
+
+	<SELECT_STDLISTINFO>
+	<note>getStdListInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+ 		select B0.*
+		from KpiStandardGraph A0, KpiStandardList B0, KpiStandardGraphListLink C0
+		where B0.ida2a2 = C0.ida3a5
+		and A0.ida2a2 = C0.ida3b5
+		and A0.gbmcode = ?
+		and A0.productname = ?
+		and A0.kpiyear = ?
+		and B0.kpidate = ?
+	]]> </sql>
+	</SELECT_STDLISTINFO>
+
+	<SELECT_STDTYPEINFO>
+	<note>getStdTypeInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+		select B1.*
+		from KpiStandardList A1, KpiStandardType B1, KpiStandardListTypeLink C1
+		where A1.ida2a2 = C1.ida3b5
+		and B1.ida2a2 = C1.ida3a5
+		and A1.ida2a2 = (select B0.ida2a2
+			from KpiStandardGraph A0, KpiStandardList B0, KpiStandardGraphListLink C0
+			where B0.ida2a2 = C0.ida3a5
+			and A0.ida2a2 = C0.ida3b5
+			and A0.gbmcode = ?
+			and A0.kpiyear = ?
+			and A0.productname = ?
+			and B0.kpidate = ?)
+		order by B1.standardtype
+	]]> </sql>
+	</SELECT_STDTYPEINFO>
+
+	<SELECT_REUSEGRAPHINFO>
+	<note>findReUseGraph4Product</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+		select distinct productname
+		from kpireusegraph
+		where gbmcode = ?
+		and kpiyear = ?
+		order by productname
+	]]> </sql>
+	</SELECT_REUSEGRAPHINFO>
+
+	<SELECT_REUSEGRAPHINFO2>
+	<note>findReUseGraph4Product</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+
+		select B0.* 
+		from kpireusegraph A0, kpireuselist B0, kpireusegraphlistlink C0
+		where A0.ida2a2 = C0.ida3b5
+		and B0.ida2a2 = C0.ida3a5
+		and A0.productname = ?
+		and B0.kpiquarter = ?
+	]]> </sql>
+	</SELECT_REUSEGRAPHINFO2>
+
+	<STAT_PROJECT_GRAPH>
+    <note>STAT_PROJECT_GRAPH</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select e.gbmCode, 
+	   -- 분기별 등록과제(확정) 
+	   (DEF_1+DEF_2+DEF_3) DEF_1Q, 
+   	   (DEF_4+DEF_5+DEF_6) DEF_2Q, 
+	   (DEF_7+DEF_8+DEF_9) DEF_3Q, 
+	   (DEF_10+DEF_11+DEF_12) DEF_4Q, 
+	   -- 분기별 등록과제(채번) 
+	   (NUM_1+NUM_2+NUM_3) NUM_1Q, 
+   	   (NUM_4+NUM_5+NUM_6) NUM_2Q, 
+	   (NUM_7+NUM_8+NUM_9) NUM_3Q, 
+	   (NUM_10+NUM_11+NUM_12) NUM_4Q, 
+	   -- 분기별 미등록과제 
+	   (NON_1+NON_2+NON_3) NON_1Q, 
+   	   (NON_4+NON_5+NON_6) NON_2Q, 
+	   (NON_7+NON_8+NON_9) NON_3Q, 
+	   (NON_10+NON_11+NON_12) NON_4Q, 
+	   -- 분기별 채번 지연 과제 
+	   (DLY_N_1+DLY_N_2+DLY_N_3) DLY_N_1Q, 
+   	   (DLY_N_4+DLY_N_5+DLY_N_6) DLY_N_2Q, 
+	   (DLY_N_7+DLY_N_8+DLY_N_9) DLY_N_3Q, 
+	   (DLY_N_10+DLY_N_11+DLY_N_12) DLY_N_4Q,
+	   -- 분기별 확정 지연 과제 
+	   (DLY_D_1+DLY_D_2+DLY_D_3) DLY_D_1Q, 
+   	   (DLY_D_4+DLY_D_5+DLY_D_6) DLY_D_2Q, 
+	   (DLY_D_7+DLY_D_8+DLY_D_9) DLY_D_3Q, 
+	   (DLY_D_10+DLY_D_11+DLY_D_12) DLY_D_4Q  
+	from ( -- 등록과제(확정) 
+		select u.gbmCode gbmCode, 
+			count(decode(u.appliedDate,01, 1, null)) DEF_1, 
+			count(decode(u.appliedDate,02, 1, null)) DEF_2, 
+			count(decode(u.appliedDate,03, 1, null)) DEF_3, 
+			count(decode(u.appliedDate,04, 1, null)) DEF_4, 
+			count(decode(u.appliedDate,05, 1, null)) DEF_5, 
+			count(decode(u.appliedDate,06, 1, null)) DEF_6, 
+			count(decode(u.appliedDate,07, 1, null)) DEF_7, 
+			count(decode(u.appliedDate,08, 1, null)) DEF_8, 
+			count(decode(u.appliedDate,09, 1, null)) DEF_9, 
+			count(decode(u.appliedDate,10, 1, null)) DEF_10, 
+			count(decode(u.appliedDate,11, 1, null)) DEF_11, 
+			count(decode(u.appliedDate,12, 1, null)) DEF_12 
+		from ( 
+			select gbmCode, substr(to_char(appliedDate + ?,'YYYY-MM'),6,2) appliedDate 
+			from sisProjectMaster pm, sisProjectVersion pv 
+			where pm.pjtType = 'P' 
+				and pm.expectFlag = 'N' 
+				and pm.ida3a4 = pv.ida2a2 
+				and pv.appliedDate >= ? 
+				and pv.appliedDate <= ? 
+				and pv.projectState in ('D5', 'M5') 
+		) u 
+		group by u.gbmCode 
+	) a, 
+	( -- 등록과제(채번) 
+	  	select u.gbmCode gbmCode, 
+			count(decode(u.appliedDate,01, 1, null)) NUM_1, 
+			count(decode(u.appliedDate,02, 1, null)) NUM_2, 
+			count(decode(u.appliedDate,03, 1, null)) NUM_3, 
+			count(decode(u.appliedDate,04, 1, null)) NUM_4, 
+			count(decode(u.appliedDate,05, 1, null)) NUM_5, 
+			count(decode(u.appliedDate,06, 1, null)) NUM_6, 
+			count(decode(u.appliedDate,07, 1, null)) NUM_7, 
+			count(decode(u.appliedDate,08, 1, null)) NUM_8, 
+			count(decode(u.appliedDate,09, 1, null)) NUM_9, 
+			count(decode(u.appliedDate,10, 1, null)) NUM_10, 
+			count(decode(u.appliedDate,11, 1, null)) NUM_11, 
+			count(decode(u.appliedDate,12, 1, null)) NUM_12 
+		from ( 
+			select gbmCode, substr(to_char(appliedDate + ?,'YYYY-MM'),6,2) appliedDate 
+			from sisProjectMaster pm, sisProjectVersion pv 
+			where pm.pjtType = 'P' 
+				and pm.expectFlag = 'N' 
+				and pm.ida3a4 = pv.ida2a2 
+				and pv.appliedDate >= ? 
+				and pv.appliedDate <= ? 
+				and pv.projectState in ('N5', 'P5') 
+				and pm.praDate > sysdate - 1
+		) u 
+		group by u.gbmCode 
+	)b, 
+	( -- 미등록과제 
+	  	select u.gbmCode gbmCode, 
+			count(decode(u.diaDate,01, 1, null)) NON_1, 
+			count(decode(u.diaDate,02, 1, null)) NON_2, 
+			count(decode(u.diaDate,03, 1, null)) NON_3, 
+			count(decode(u.diaDate,04, 1, null)) NON_4, 
+			count(decode(u.diaDate,05, 1, null)) NON_5, 
+			count(decode(u.diaDate,06, 1, null)) NON_6, 
+			count(decode(u.diaDate,07, 1, null)) NON_7, 
+			count(decode(u.diaDate,08, 1, null)) NON_8, 
+			count(decode(u.diaDate,09, 1, null)) NON_9, 
+			count(decode(u.diaDate,10, 1, null)) NON_10, 
+			count(decode(u.diaDate,11, 1, null)) NON_11, 
+			count(decode(u.diaDate,12, 1, null)) NON_12 
+		from ( 
+			select gbmCode, substr(to_char(diaDate + ?,'YYYY-MM'),6,2) diaDate 
+			from sisProjectMaster 
+			where pjtType = 'P' 
+				and expectFlag = 'Y' 
+				and diaDate >= ? 
+				and diaDate <= ?
+				and diaDate > sysdate - 1
+		) u 
+		group by u.gbmCode 
+	)c, 
+	( -- 채번 지연 과제 
+	  	select u.gbmCode gbmCode, 
+			count(decode(u.diaDate,01, 1, null)) DLY_N_1, 
+			count(decode(u.diaDate,02, 1, null)) DLY_N_2, 
+			count(decode(u.diaDate,03, 1, null)) DLY_N_3, 
+			count(decode(u.diaDate,04, 1, null)) DLY_N_4, 
+			count(decode(u.diaDate,05, 1, null)) DLY_N_5, 
+			count(decode(u.diaDate,06, 1, null)) DLY_N_6, 
+			count(decode(u.diaDate,07, 1, null)) DLY_N_7, 
+			count(decode(u.diaDate,08, 1, null)) DLY_N_8, 
+			count(decode(u.diaDate,09, 1, null)) DLY_N_9, 
+			count(decode(u.diaDate,10, 1, null)) DLY_N_10, 
+			count(decode(u.diaDate,11, 1, null)) DLY_N_11, 
+			count(decode(u.diaDate,12, 1, null)) DLY_N_12 
+		from ( 
+			select gbmCode, substr(to_char(diaDate + ?,'YYYY-MM'),6,2) diaDate 
+			from sisProjectMaster 
+			where pjtType = 'P' 
+				and expectFlag = 'Y' 
+				and diaDate >= ? 
+				and diaDate <= ?
+				and diaDate <= sysdate - 1
+		) u 
+		group by u.gbmCode 
+	)d,
+	( -- 확정 지연 과제 
+	  	select u.gbmCode gbmCode, 
+			count(decode(u.appliedDate,01, 1, null)) DLY_D_1, 
+			count(decode(u.appliedDate,02, 1, null)) DLY_D_2, 
+			count(decode(u.appliedDate,03, 1, null)) DLY_D_3, 
+			count(decode(u.appliedDate,04, 1, null)) DLY_D_4, 
+			count(decode(u.appliedDate,05, 1, null)) DLY_D_5, 
+			count(decode(u.appliedDate,06, 1, null)) DLY_D_6, 
+			count(decode(u.appliedDate,07, 1, null)) DLY_D_7, 
+			count(decode(u.appliedDate,08, 1, null)) DLY_D_8, 
+			count(decode(u.appliedDate,09, 1, null)) DLY_D_9, 
+			count(decode(u.appliedDate,10, 1, null)) DLY_D_10, 
+			count(decode(u.appliedDate,11, 1, null)) DLY_D_11, 
+			count(decode(u.appliedDate,12, 1, null)) DLY_D_12 
+		from ( 
+			select gbmCode, substr(to_char(appliedDate + ?,'YYYY-MM'),6,2) appliedDate 
+			from sisProjectMaster pm, sisProjectVersion pv 
+			where pm.pjtType = 'P' 
+				and pm.expectFlag = 'N' 
+				and pm.ida3a4 = pv.ida2a2 
+				and pv.appliedDate >= ? 
+				and pv.appliedDate <= ? 
+				and pv.projectState in ('N5', 'P5') 
+				and pm.praDate <= sysdate - 1
+		) u 
+		group by u.gbmCode 
+	)f,
+	( select distinct gbmCode
+	  from sisProjectMaster
+	  group by gbmCode
+	)e
+	where e.gbmCode = a.gbmCode(+)
+	  and e.gbmCode = b.gbmCode(+)
+	  and e.gbmCode = c.gbmCode(+)
+	  and e.gbmCode = d.gbmCode(+)
+	  and e.gbmCode = f.gbmCode(+)
+    ]]> </sql>
+    </STAT_PROJECT_GRAPH>
+
+	<STAT_PROJECT_LIST>
+    <note>STAT_PROJECT_LIST</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+    -- 미등록 과제
+	select 'OR:ext.sis.swif.SisProjectMaster:'||ida2a2 Oid, to_char(diaDate, 'YYYY-MM-DD') regDate,
+		'NON' approvedState
+	from sisProjectMaster 
+	where pjtType = 'P' 
+		and expectFlag = 'Y'
+		and gbmCode = ?
+		and diaDate >= ? 
+		and diaDate <= ?
+		and diaDate > sysdate - 1
+	UNION ALL
+	-- 채번 지연 과제
+	select 'OR:ext.sis.swif.SisProjectMaster:'||ida2a2 Oid, to_char(diaDate, 'YYYY-MM-DD') regDate,
+		'DLY_N' approvedState
+	from sisProjectMaster 
+	where pjtType = 'P' 
+		and expectFlag = 'Y'
+		and gbmCode = ?
+		and diaDate >= ? 
+		and diaDate <= ?
+		and diaDate <= sysdate - 1
+	UNION ALL
+	-- 확정 지연 과제
+	select 'OR:ext.sis.swif.SisProjectMaster:'||pm.ida2a2 Oid, to_char(pv.appliedDate, 'YYYY-MM-DD') regDate,
+		'DLY_D' approvedState
+	from sisProjectMaster pm, sisProjectVersion pv
+	where pm.pjtType = 'P' 
+		and pm.expectFlag = 'N' 
+		and pm.gbmCode = ?
+		and pm.ida3a4 = pv.ida2a2 
+		and pv.appliedDate >= ?
+		and pv.appliedDate <= ?
+		and pv.projectState in ('N5', 'P5') 
+		and pm.praDate <= sysdate - 1
+	UNION ALL
+	-- 등록 과제(채번)
+	select 'OR:ext.sis.swif.SisProjectMaster:'||pm.ida2a2 Oid, to_char(pv.appliedDate, 'YYYY-MM-DD') regDate,
+		pv.projectState approvedState
+	from sisProjectMaster pm, sisProjectVersion pv
+	where pm.pjtType = 'P' 
+		and pm.expectFlag = 'N' 
+		and pm.gbmCode = ?
+		and pm.ida3a4 = pv.ida2a2 
+		and pv.appliedDate >= ?
+		and pv.appliedDate <= ?
+		and pv.projectState in ('N5', 'P5') 
+		and pm.praDate > sysdate - 1
+	UNION ALL
+	-- 등록 과제(확정)
+	select 'OR:ext.sis.swif.SisProjectMaster:'||pm.ida2a2 Oid, to_char(pv.appliedDate, 'YYYY-MM-DD') regDate,
+		pv.projectState approvedState
+	from sisProjectMaster pm, sisProjectVersion pv
+	where pm.pjtType = 'P' 
+		and pm.expectFlag = 'N' 
+		and pm.gbmCode = ?
+		and pm.ida3a4 = pv.ida2a2 
+		and pv.appliedDate >= ?
+		and pv.appliedDate <= ?
+		and pv.projectState in ('D5', 'M5') 
+    ]]> </sql>
+    </STAT_PROJECT_LIST>
+
+
+	<GETEXISTGBMFROMMODEL>
+	<note>getExistGbm</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+	select distinct d_gbm
+	from apms_rel_model_if
+	where d_gbm IN ('VD','STORAGE','COMPUTER','AV','DA','NETWORK','PRINTING','MOBILE', 'SYSLSI')
+	]]> </sql>
+	</GETEXISTGBMFROMMODEL>
+
+	<GETMODELBYDATE>
+	<note>getModelByDate</note>
+	<author>charismma</author>
+	<sql> <![CDATA[
+	select MATNR,  D_GBM, min(GET_APMSGSTRS(MATNR, WERKS)) GSTRS
+	from apms_rel_model_if
+	where D_GBM = ?
+	group by MATNR, D_GBM
+	]]> </sql>
+	</GETMODELBYDATE>
+	
+	<GET_SISMODEL_INFO>
+	<note>GET_SISMODEL_INFO</note>
+	<author>charismma</author>
+	<sql> <![CDATA[
+	select to_char(sv.appliedDate, 'YYYYMMDD') AppliedDate, pv.version Version
+	from sismodelmaster sm, sismodelversion sv, sisprojectversion pv 
+	where sm.modelcode =?
+	and sm.gbmcode = ?
+	and sm.ida3a4 = sv.ida2a2
+	and sv.ida3b4 = pv.ida2a2
+	]]> </sql>
+	</GET_SISMODEL_INFO>
+
+	<FINDAPMSMODEL>
+	<note>findModelInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+	select *
+	from kpimodel
+	where gbmcode=? and year=? and month=?
+	]]> </sql>
+	</FINDAPMSMODEL>
+
+	<FINDTOTALMODEL>
+	<note>findModelInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+	select *
+	from kpimodel
+	where gbmcode=? and year=? and month=? and flag <> ?
+	]]> </sql>
+	</FINDTOTALMODEL>
+
+	<FINDMODEL>
+	<note>findModelInfo</note>
+	<author>sapark</author>
+	<sql> <![CDATA[
+	select *
+	from kpimodel
+	where gbmcode=? and year=? and month=? and flag = ?
+	]]> </sql>
+	</FINDMODEL>
+
+</KPISQL>

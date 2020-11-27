@@ -1,0 +1,345 @@
+<?xml version='1.0' encoding='EUC-KR' standalone='yes'?>
+<UMSSQL>
+
+	<SELECT_USER>
+		<note>사용자조회 B:재직, V:휴직, R:퇴직, S: 파견신청 </note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	*
+			from	umsuser
+			where	userstatus != 'R'
+			and 	userid = ?
+		]]> </sql>
+	</SELECT_USER>
+
+	<SELECT_SINGLE_USER>
+		<note>Single ID로 사용자조회</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	userid
+			from	umsuser
+			where	userstatus != 'R'
+			and		singleid = ?
+		]]> </sql>
+	</SELECT_SINGLE_USER>
+
+	<SELECT_ORG>
+		<note>부서코드로 부서검색</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	*
+			from	umsorg
+			where	cn = ?
+		]]> </sql>
+	</SELECT_ORG>
+
+	<SELECT_UMSGROUP>
+		<note>UmsGroup 검색</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	*
+			from	umsgroup
+			where	groupcode = ?
+		]]> </sql>
+	</SELECT_UMSGROUP>
+
+	<SELECT_SEARCH_USER>
+		<note>사용자검색</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	count(*) over() CNT, T.*
+			from(
+				select  U2.*
+				from    umsgroupuserlink U1,
+						umsuser U2,
+						umsgroup U3
+				where	U1.ida3a5 = U2.ida2a2
+				and		U1.ida3b5 = U3.ida2a2
+				and		U2.userstatus != 'R'
+				and		U3.groupcode = ?
+				SEARCH_NAME_STRING
+			)T
+			order by T.COMPANYCODE
+		]]> </sql>
+	</SELECT_SEARCH_USER>
+
+	<SELECT_UMS_AUTHORITY>
+		<note>GBM 권한 검색</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	count(*) over() CNT, U2.*,
+					U1.ida2a2 LINKIDA2A2,
+					'OR:'||U1.classnamea2a2||':'||U1.ida2a2 LINKOID
+			from	umsgroupauthoritylink U1,
+					umsauthority U2,
+					umsgroup U3
+			where	U1.ida3a5 = U2.ida2a2
+			and		U1.ida3b5 = U3.ida2a2
+			and		U3.groupcode = ?
+		]]> </sql>
+	</SELECT_UMS_AUTHORITY>
+
+	<SELECT_AUTHORITY_USER>
+		<note>권한 사용자 검색</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	count(*) over() CNT, U2.*,
+					'OR:'||U1.classnamea2a2||':'||U1.ida2a2 LINKOID
+			from	umsauthorityuserlink U1,
+			umsuser	U2
+			where	U1.ida3a5 = U2.ida2a2
+			and		U1.ida3b5 = ?
+		]]> </sql>
+	</SELECT_AUTHORITY_USER>
+
+	<SELECT_GBM_LIST>
+		<note>사용자 GBMCODE</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	U3.*, U1.isprimary,
+					'OR:'||U1.classnamea2a2||':'||U1.ida2a2 LINKOID,
+					'OR:'||U2.classnamea2a2||':'||U2.ida2a2 USEROID
+			from	umsgroupuserlink U1,
+					umsuser U2,
+					umsgroup U3
+			where	U1.ida3a5 = U2.ida2a2
+			and		U1.ida3b5 = U3.ida2a2
+			and 	U2.userid = ?
+			order   by U1.isprimary desc
+		]]> </sql>
+	</SELECT_GBM_LIST>
+
+	<SELECT_ALL_GBM_LIST>
+		<note>All GBM List</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	*
+			from	umsgroup
+		]]> </sql>
+	</SELECT_ALL_GBM_LIST>
+
+	<SELECT_ALL_CONTAINER_LIST>
+		<note>All Container List</note>
+		<author>UJ Choi</author>
+		<sql> <![CDATA[
+			select	*
+			from	umscontainer
+		]]> </sql>
+	</SELECT_ALL_CONTAINER_LIST>
+
+	<SELECT_GBM_CONTAINER_LIST>
+		<note>GBM Container List</note>
+		<author>UJ Choi</author>
+		<sql> <![CDATA[
+			select	*
+			from	umscontainer
+			where gbm = ?
+		]]> </sql>
+	</SELECT_GBM_CONTAINER_LIST>
+
+
+	<SELECT_USER_AUTHORITY_LIST>
+		<note>사용자 권한 리스트</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select  U4.*
+			from    umsgroupauthoritylink U1,
+					umsauthorityuserlink U2,
+					umsuser U3,
+					umsauthority U4,
+					umsgroup U5
+			where   U1.ida2a2 = U2.ida3b5
+			and     U1.ida3a5 = U4.ida2a2
+			and     U2.ida3a5 = U3.ida2a2
+			and     U1.ida3b5 = U5.ida2a2
+			and     U3.userid = ?
+			and     U5.groupcode = ?
+		]]> </sql>
+	</SELECT_USER_AUTHORITY_LIST>
+
+	<SELECT_DEPT_GBM>
+		<note>
+			부서별 GBM
+			무선사업부 [MOBILE]			= C10D0165
+			네트워크사업부 [NETWORK]		= C10D2085
+			영상디스플레이사업부 [VD]		= C10K0062
+			디지털프린팅사업부 [PRINTING]	= C10D0004
+			
+			디지털AV사업부 [AV]			= C10A1001
+			컴퓨터시스템사업부 [COMPUTER]	= C10C2011
+			스토리지사업부 [STORAGE]		= C10C0168
+			생활가전총괄 [DA]				= C10B6000
+			SYSTEM LSI [SYSLSI]			= C10F8000
+			
+			사용자 Loading 할때 다음을 사용한다.
+			PF(Perfoce) 사용부서			8그룹 C10D9330
+											10그룹 C10D9420
+			나머지는 CC(Clear Case)
+		</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select  U1.*, 
+					decode(U3.cn, null, 'CC', 'PF') SCM
+			from	umsgroup U1,
+					( select 'MOBILE'	GBM, cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10D0165'
+					union all
+					select 'NETWORK'	GBM, cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10D2085'
+					union all
+					select 'VD'			GBM, cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10K0062'
+					union all
+					select 'PRINTING'	GBM, cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10D0004'
+					union all
+					select 'AV'			GBM, cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10A1001'
+					union all
+					select 'COMPUTER'	GBM, cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10C2011'
+					union all
+					select 'STORAGE'	GBM, cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10C0168'
+					union all
+					select 'DA'			GBM, cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10B6000'
+					union all
+					select 'SYSLSI'		GBM, cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10F8000'
+					) U2,
+                    ( select				cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10D9330'
+					union all
+					select					cn from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10D9420'
+                    ) U3
+			where	U1.groupcode = U2.GBM
+            and     U2.cn = U3.cn(+)
+			and     U2.cn = ?
+		]]> </sql>
+	</SELECT_DEPT_GBM>
+
+	<SELECT_ALL_GBM_DEPT>
+		<note>
+			GBM에 속한 부서 전체
+			무선사업부 [MOBILE]			= C10D0165
+			네트워크사업부 [NETWORK]		= C10D2085
+			영상디스플레이사업부 [VD]		= C10K0062
+			디지털프린팅사업부 [PRINTING]	= C10D0004
+			디지털AV사업부 [AV]			= C10A1001
+			컴퓨터시스템사업부 [COMPUTER]	= C10C2011
+			스토리지사업부 [STORAGE]		= C10C0168
+			생활가전총괄 [DA]				= C10B6000
+			SYSTEM LSI [SYSLSI]			= C10F8000
+			
+			생활가전총괄 =	C10B6000   // 2006.9.7 사용자 요구로 총괄 모두 반영			  
+		</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select cn, 'MOBILE'		GBM from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10D0165'
+			union all
+			select cn, 'NETWORK'	GBM from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10D2085'
+			union all
+			select cn, 'VD'			GBM from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10K0062'
+			union all
+			select cn, 'PRINTING'	GBM from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10D0004'
+			union all
+			select cn, 'AV'			GBM from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10A1001'
+			union all
+			select cn, 'COMPUTER'	GBM from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10C2011'
+			union all
+			select cn, 'STORAGE'	GBM from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10C0168'
+			union all
+			select cn, 'DA'			GBM from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10B6000'
+			union all
+			select cn, 'SYSLSI'		GBM from umsorg connect by prior cn = ephighdeptnumber start with cn = 'C10F8000'		
+		]]> </sql>
+	</SELECT_ALL_GBM_DEPT>
+
+
+	<SELECT_MULTYCONTAINER_LOCALINFOMANTION>
+		<note>
+			적용 필요한 GBM : SYSLSI
+			SYSTEM LSI [SYSLSI]			= C10F8000
+			2006년 11월 현재 수원컨테이너에 속하는 부서
+				C10F8702	Mobile Solution개발실(SYS.LSI)
+				C10F8929	Media개발팀(SYS.LSI)
+			사용자 Loading 할때 위의 두 부서는 SYSLSI_SW로 컨테이너를 정해준다.
+			
+			주의 : 1. 사용자 로딩시마다 적용하는 것이 좋다. 
+				  2. DA의 경우 사용자를 지정하여 업데이트 하였다. (추후 변경될 가능성 있음)
+				  3. 추후 이러한 GBM이 추가될 경우 이 sql도 업데이트 되어야 한다.
+			
+		</note>
+		<author>UJINCHOI</author>
+		<sql> <![CDATA[
+			UPDATE UMSUSER SET CONTAINERNAME ='SYSLSI_GH' 
+			WHERE CONTAINERNAME ='SYSLSI_SW'
+			select DISTINCT cn,'SYSLSI_SW'	GBM 
+			from umsorg connect by prior ephighdeptnumber = cn 
+			start with cn IN ( 'C10F8929', 'C10F8702')
+		]]> </sql>
+	</SELECT_MULTYCONTAINER_LOCALINFOMANTION>
+
+
+	<SELECT_LOGIN_SESSION>
+		<note>
+			Session ID로 Login History 정보를 가져온다.
+		</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	'OR:'||classnamea2a2||':'||ida2a2 OID
+			from	umsloginhistory
+			where	sessionid = ?
+		]]> </sql>
+	</SELECT_LOGIN_SESSION>
+
+
+	<SELECT_LAST_LOGIN_INFO>
+		<note>
+			사용자의 마지막 로그인 정보를 가져온다.
+		</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	'OR:'||classnamea2a2||':'||ida2a2 OID
+			from	umsloginhistory
+			where	(userid,logintime) =
+					(select	userid, max(logintime)
+					from	umsloginhistory
+					where	userid = ?
+					group	by userid)
+		]]> </sql>
+	</SELECT_LAST_LOGIN_INFO>
+
+	<SELECT_AUTHORITY>
+		<note>권한코드로 UmsAuthority를 가져온다.</note>
+		<author>ktkwon</author>
+		<sql> <![CDATA[
+			select	*
+			from	umsauthority
+			where	authoritycode = ?
+		]]> </sql>
+	</SELECT_AUTHORITY>
+
+	<SELECT_AUTHORITIES>
+		<note>권한코드로 UmsAuthority를 가져온다.</note>
+		<author>UJ.Choi</author>
+		<sql> <![CDATA[
+			select	*
+			from	umsauthority
+		]]> </sql>
+	</SELECT_AUTHORITIES>
+
+	<SELECT_GBM_SYSTEM_ADMIN>
+		<note>모든 GBM의 SYSTEM_ADMIN의 UmsGroupAuthorityLink 를 가져온다.</note>
+		<author>UJ.Choi</author>
+		<sql> <![CDATA[
+			select  'OR:'||U1.classnamea2a2||':'||U1.ida2a2 LINKOID
+			from    umsgroupauthoritylink U1,
+					umsauthority U2
+			where   U1.ida3a5 = U2.ida2a2
+			and     U2.authoritycode = ?
+		]]> </sql>
+	</SELECT_GBM_SYSTEM_ADMIN>
+	
+	<SELECT_WTUSER>
+	<note>wtuser에 등록되어 있나를 확인하기 위해서 사용한다.</note>
+	<author>UJ.Choi</author>
+	<sql> <![CDATA[
+		select  name
+		from    wtuser
+		where   name = ?
+	]]> </sql>
+	</SELECT_WTUSER>
+	
+</UMSSQL>

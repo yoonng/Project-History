@@ -1,0 +1,294 @@
+<?xml version='1.0' encoding='EUC-KR' standalone='yes'?>
+<HISTORYSQL>
+<!-- 두개의 part version을 비교하여  파일의 공통부분을 가져온다.  -->
+  
+	<file.same.fullpath>
+		<note> (NF-CF), (OF-CF) join same filename </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		     select a.ida2a2 fileoid, a.filefullpath, a.filepathfilename, a.fileversion, a.filenamenbranchversion, a.fileloc, a.sameScm
+				from 
+				(
+				    -- new file
+					select  f.ida2a2, f.filename,
+					        f.filePath filefullpath,
+							substr(f.filepath,0,  instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename,
+							substr(f.filepath,    instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion,
+					        f.filename||substr(f.filepath, instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion, 
+					        decode(f.fileloc, null, 0, -1, 0, -2, 0, fileloc) fileloc, m.scm sameScm
+					from sisPartVersion v, sisContentHolder c, sisFileInfo f, sisPartMaster m
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and m.ida2a2 = v.ida3a4
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					minus -- minus change file
+				    select f.ida2a2, f.filename,
+					       f.filePath filefullpath,
+						   substr(f.filepath,0,  instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename,
+						   substr(f.filepath,    instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion,
+					       f.filename||substr(f.filepath, instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion, 
+					       decode(f.fileloc, null, 0, -1, 0, -2, 0, f.fileloc) fileloc, m.scm sameScm
+				    from sisPartVersion v, sisContentHolder c, sisFileInfo f, sisPartMaster m,
+					     sisPartVersion v2, sisContentHolder c2, sisFileInfo f2, siscomparefileinfo cf
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and m.ida2a2 = v.ida3a4
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					and v2.ida2a2 = ?
+					and c2.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v2.ida2a2 = c2.ida3b8
+					and c2.ida2a2 = f2.ida3a4
+			        and cf.ida3b4 = f.ida2a2
+				    and cf.ida3a4 = f2.ida2a2
+				) a,				
+				(
+				    -- old file
+					select f.ida2a2, f.filename
+					from sisPartVersion v, sisContentHolder c, sisFileInfo f
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					minus -- minus change file
+				    select f2.ida2a2, f2.filename
+				    from sisPartVersion v, sisContentHolder c, sisFileInfo f,
+					     sisPartVersion v2, sisContentHolder c2, sisFileInfo f2, siscomparefileinfo cf
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					and v2.ida2a2 = ?
+					and c2.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v2.ida2a2 = c2.ida3b8 
+					and c2.ida2a2 = f2.ida3a4 
+			        and cf.ida3b4 = f.ida2a2
+				    and cf.ida3a4 = f2.ida2a2
+				) b
+				where a.filename = b.filename
+		]]> </sql>
+	</file.same.fullpath>
+	
+	<file.change.fullpath>
+		<note> CF - comparefileinfo </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		        select f.ida2a2 filenewoid, f2.ida2a2 fileoldoid,
+				    f.filePath newfilefullpath, f2.filePath oldfilefullpath,
+				    substr(f.filepath,0,  instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)-1) newfilepathfilename,
+					substr(f2.filepath,0,  instr(f2.filepath, decode(f2.filetype,'PERFORCE','#','@'), 1, 1)-1) oldfilepathfilename,
+					substr(f.filepath,    instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)+2) newfileversion,
+					substr(f2.filepath,    instr(f2.filepath, decode(f2.filetype,'PERFORCE','#','@'), 1, 1)+2) oldfileversion,
+                    f.filename||substr(f.filepath, instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)) newfilenamenbranchversion,
+					f2.filename||substr(f2.filepath, instr(f2.filepath, decode(f2.filetype,'PERFORCE','#','@'), 1, 1)) oldfilenamenbranchversion,
+		            f.fileloc newfileloc, f2.fileloc oldfileloc,
+		            cf.insertloc, cf.deleteloc, cf.changeloc, cf.changedelloc,
+		            m.scm newscm, m2.scm oldscm
+				from sisPartVersion v, sisContentHolder c, sisFileInfo f, sisPartMaster m,
+				     sisPartVersion v2, sisContentHolder c2, sisFileInfo f2, sisPartMaster m2, siscomparefileinfo cf
+				where  v.ida2a2 = ?
+				and c.siscontenttype in ('CLEARCASE','PERFORCE')
+				and m.ida2a2 = v.ida3a4
+				and v.ida2a2 = c.ida3b8
+				and c.ida2a2 = f.ida3a4
+				and v2.ida2a2 = ?
+				and c2.siscontenttype in ('CLEARCASE','PERFORCE')
+				and m2.ida2a2 = v2.ida3a4
+				and v2.ida2a2 = c2.ida3b8
+				and c2.ida2a2 = f2.ida3a4
+			    and cf.ida3b4 = f.ida2a2
+			    and cf.ida3a4 = f2.ida2a2
+		]]> </sql>
+	</file.change.fullpath>
+	
+	<file.add>
+		<note> NF-CF-SF, 주의: CF의 New oid, SF의 New oid</note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		        select f.ida2a2 fileoid, f.filePath filefullpath, 
+			 		substr(f.filepath,0,  instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename, 
+			 		substr(f.filepath,    instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion, 
+			        f.filename||substr(f.filepath, instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion,  
+			        decode(f.fileloc, null, 0, -1, 0, -2, 0, fileloc) fileloc 
+			    from  sisPartVersion v, sisContentHolder c, sisFileInfo f
+			    where  v.ida2a2 = ?
+			    and v.ida2a2 = c.ida3b8 
+			    and c.ida2a2 = f.ida3a4 
+			    and c.siscontenttype in ('CLEARCASE','PERFORCE')
+			    minus -- change file
+				select f.ida2a2 fileoid,  f.filePath filefullpath,
+					   substr(f.filepath,0,  instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename,
+					   substr(f.filepath,    instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion,
+					   f.filename||substr(f.filepath, instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion, 
+					   decode(f.fileloc, null, 0, -1, 0, -2, 0, f.fileloc) fileloc
+			    from sisPartVersion v, sisContentHolder c, sisFileInfo f,
+				     sisPartVersion v2, sisContentHolder c2, sisFileInfo f2, siscomparefileinfo cf
+				where  v.ida2a2 = ?
+				and c.siscontenttype in ('CLEARCASE','PERFORCE')
+				and v.ida2a2 = c.ida3b8
+				and c.ida2a2 = f.ida3a4
+				and v2.ida2a2 = ?
+				and c2.siscontenttype in ('CLEARCASE','PERFORCE')
+				and v2.ida2a2 = c2.ida3b8
+				and c2.ida2a2 = f2.ida3a4
+			    and cf.ida3b4 = f.ida2a2
+			    and cf.ida3a4 = f2.ida2a2
+				minus -- same file
+			    select a.ida2a2 fileoid, a.filefullpath, a.filepathfilename, a.fileversion, a.filenamenbranchversion, a.fileloc
+				from 
+				(
+				    -- new file
+					select  f.ida2a2, f.filename,
+					        f.filePath filefullpath,
+							substr(f.filepath,0,  instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename,
+							substr(f.filepath,    instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion,
+					        f.filename||substr(f.filepath, instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion, 
+					        decode(f.fileloc, null, 0, -1, 0, -2, 0, fileloc) fileloc
+					from sisPartVersion v, sisContentHolder c, sisFileInfo f
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					minus -- minus change file
+				    select f.ida2a2, f.filename,
+					       f.filePath filefullpath,
+						   substr(f.filepath,0,  instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename,
+						   substr(f.filepath,    instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion,
+					       f.filename||substr(f.filepath, instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion, 
+					       decode(f.fileloc, null, 0, -1, 0, -2, 0, f.fileloc) fileloc
+				    from sisPartVersion v, sisContentHolder c, sisFileInfo f,
+					     sisPartVersion v2, sisContentHolder c2, sisFileInfo f2, siscomparefileinfo cf
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					and v2.ida2a2 = ?
+					and c2.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v2.ida2a2 = c2.ida3b8
+					and c2.ida2a2 = f2.ida3a4
+			        and cf.ida3b4 = f.ida2a2
+				    and cf.ida3a4 = f2.ida2a2
+				) a,				
+				(
+				    -- old file
+					select f.ida2a2, f.filename
+					from sisPartVersion v, sisContentHolder c, sisFileInfo f
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					minus -- minus change file
+				    select f2.ida2a2, f2.filename
+				    from sisPartVersion v, sisContentHolder c, sisFileInfo f,
+					     sisPartVersion v2, sisContentHolder c2, sisFileInfo f2, siscomparefileinfo cf
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					and v2.ida2a2 = ?
+					and c2.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v2.ida2a2 = c2.ida3b8 
+					and c2.ida2a2 = f2.ida3a4 
+			        and cf.ida3b4 = f.ida2a2
+				    and cf.ida3a4 = f2.ida2a2
+				) b
+				where a.filename = b.filename
+		]]> </sql>
+	</file.add>
+	
+	<file.del>
+		<note> OF-CF-SF, 주의: CF의 Old oid, SF의 Old oid </note>
+		<author>yjlee</author>
+		<sql> <![CDATA[
+		        select f.ida2a2 fileoid, f.filePath filefullpath,
+			 		substr(f.filepath,0,  instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename,
+			 		substr(f.filepath,    instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion,
+			        f.filename||substr(f.filepath, instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion,  
+			        decode(f.fileloc, null, 0, -1, 0, -2, 0, fileloc) fileloc 
+			    from  sisPartVersion v, sisContentHolder c, sisFileInfo f
+			    where  v.ida2a2 = ?
+			    and v.ida2a2 = c.ida3b8
+			    and c.ida2a2 = f.ida3a4
+			    and c.siscontenttype in ('CLEARCASE','PERFORCE')
+			    minus -- change file
+				select f2.ida2a2 fileoid,  f2.filePath filefullpath,
+					   substr(f2.filepath,0,  instr(f2.filepath, decode(f2.filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename,
+					   substr(f2.filepath,    instr(f2.filepath, decode(f2.filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion,
+					   f2.filename||substr(f2.filepath, instr(f2.filepath, decode(f2.filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion, 
+					   decode(f2.fileloc, null, 0, -1, 0, -2, 0, f2.fileloc) fileloc
+			    from sisPartVersion v, sisContentHolder c, sisFileInfo f,
+				     sisPartVersion v2, sisContentHolder c2, sisFileInfo f2, siscomparefileinfo cf
+				where  v.ida2a2 = ?
+				and c.siscontenttype in ('CLEARCASE','PERFORCE')
+				and v.ida2a2 = c.ida3b8
+				and c.ida2a2 = f.ida3a4
+				and v2.ida2a2 = ?
+				and c2.siscontenttype in ('CLEARCASE','PERFORCE')
+				and v2.ida2a2 = c2.ida3b8
+				and c2.ida2a2 = f2.ida3a4
+			    and cf.ida3b4 = f.ida2a2
+			    and cf.ida3a4 = f2.ida2a2
+				minus -- same file				
+			    select b.ida2a2 fileoid, b.filefullpath, b.filepathfilename, b.fileversion, b.filenamenbranchversion, b.fileloc
+				from
+				(
+				    -- new file
+					select  f.ida2a2, f.filename
+					from sisPartVersion v, sisContentHolder c, sisFileInfo f
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					minus -- minus change file
+				    select f.ida2a2, f.filename
+				    from sisPartVersion v, sisContentHolder c, sisFileInfo f,
+					     sisPartVersion v2, sisContentHolder c2, sisFileInfo f2, siscomparefileinfo cf
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					and v2.ida2a2 = ?
+					and c2.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v2.ida2a2 = c2.ida3b8
+					and c2.ida2a2 = f2.ida3a4
+			        and cf.ida3b4 = f.ida2a2
+				    and cf.ida3a4 = f2.ida2a2
+				) a,
+				(
+				    -- old file
+					select f.ida2a2, f.filename,
+					       f.filePath filefullpath,
+						   substr(f.filepath,0,  instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename,
+						   substr(f.filepath,    instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion,
+					       f.filename||substr(f.filepath, instr(f.filepath, decode(filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion,
+					       decode(f.fileloc, null, 0, -1, 0, -2, 0, fileloc) fileloc
+					from sisPartVersion v, sisContentHolder c, sisFileInfo f
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					minus -- minus change file
+				    select f2.ida2a2, f2.filename,
+					       f.filePath filefullpath,
+						   substr(f.filepath,0,  instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)-1) filepathfilename,
+						   substr(f.filepath,    instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)+2) fileversion,
+					       f.filename||substr(f.filepath, instr(f.filepath, decode(f.filetype,'PERFORCE','#','@'), 1, 1)) filenamenbranchversion, 
+					       decode(f.fileloc, null, 0, -1, 0, -2, 0, f.fileloc) fileloc
+				    from sisPartVersion v, sisContentHolder c, sisFileInfo f,
+					     sisPartVersion v2, sisContentHolder c2, sisFileInfo f2, siscomparefileinfo cf
+					where  v.ida2a2 = ?
+					and c.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v.ida2a2 = c.ida3b8
+					and c.ida2a2 = f.ida3a4
+					and v2.ida2a2 = ?
+					and c2.siscontenttype in ('CLEARCASE','PERFORCE')
+					and v2.ida2a2 = c2.ida3b8 
+					and c2.ida2a2 = f2.ida3a4 
+			        and cf.ida3b4 = f.ida2a2
+				    and cf.ida3a4 = f2.ida2a2
+				) b
+				where a.filename = b.filename
+		]]> </sql>
+	</file.del>
+</HISTORYSQL>

@@ -1,0 +1,516 @@
+<?xml version='1.0' encoding='EUC-KR' standalone='yes'?>
+<CommonSQL>
+  
+  <MAINBOX>
+    <note>MAINBOX</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select  pboCode,
+	        aaa.stateState stateState,
+	    	  aaa.list exChangeList,
+				  approvalType,
+          decode(?,'ko',comm.datacodekorname ,comm.datacodekorname) pboName,
+		  
+		  case ? 
+			
+			when 'ko' then 
+				decode(list,'APPR',decode(aaa.approvalType,'AP','[결재] ','AA','[후결] ','AG','[합의] ',''),'NOTI','[통보] ','RECV','[수신] ','') 
+			
+			else 
+				decode(list,'APPR',decode(aaa.approvalType,'AP','[Approval] ','AA','[AfterApproval] ','AG','[Agree] ',''),'NOTI','[Observe] ','RECV','[Receive] ','')
+		  
+		  end  || aaa.apprTitle apprTitle,
+
+          aaa.senderid senderid  , 
+    	    uu.fullkorname korname ,
+    	    uu.fullengname engname ,
+          aaa.receivedate receivedate, 
+          workItemOid,
+          approvalOid,
+          aaa.openState openState,
+          aaa.site site from 
+
+		(
+		    --결재함	
+            select 'APPR' list,
+            			 ap.stateState,
+				  				 apl.approvalType,
+                   ap.pbocode,
+                   ap.apprTitle                    , 
+        		 			 ap.apprcreatorid senderid             , 
+            	   	 to_char(wi.createStampA2 + ? , 'YYYY-MM-DD hh24:mi') receivedate,
+            	   	('OR:wt.workflow.work.WorkItem:'||wi.ida2a2) workItemOid,
+            	   	('OR:ext.sis.common.Approval:'||ap.ida2a2) approvalOid,
+            	   	sign(wi.modifyStampA2 - (wi.createStampA2+ 3/3600/24)) openState,
+            	   	ap.site site
+            from workitem wi, approval ap, wtuser wu, apprparticipantlink apl
+            where wi.status = 'POTENTIAL'
+            	and wu.name = ?
+            	and wi.IDA3A2OWNERSHIP = wu.ida2a2
+            	and apl.ida3b5 = ap.ida2a2
+            	and apl.ida3a5 = wu.ida2a2
+            	and apl.approvalType in ('AP', 'AG', 'AA')
+            	and apl.completeDate is null	
+            	and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 , length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+            	and ap.site = 'SIS' 
+	------------------------------------------------------
+	UNION ALL
+	------------------------------------------------------
+            -- 통보함
+            select 'NOTI' list,
+                   ap.stateState,
+			       			 apl.approvalType,
+                   ap.pbocode,
+                   ap.apprTitle                    , 
+        		   		 ap.apprcreatorid senderid             , 
+            	   	 to_char(wi.createStampA2 + ?, 'YYYY-MM-DD hh24:mi') receivedate,
+            	   	('OR:wt.workflow.work.WorkItem:'||wi.ida2a2) workItemOid,
+            	   	('OR:ext.sis.common.Approval:'||ap.ida2a2) approvalOid,
+            	   	sign(wi.modifyStampA2 - (wi.createStampA2+ 3/3600/24)) openState,
+            	   	ap.site site
+            from workitem wi, approval ap, wtuser wu, apprparticipantlink apl
+            where wi.status = 'POTENTIAL'
+            	and wu.name = ?
+            	and wi.IDA3A2OWNERSHIP = wu.ida2a2
+            	and wi.description = '통보자 Activity'
+            	and apl.ida3b5 = ap.ida2a2
+            	and apl.ida3a5 = wu.ida2a2
+            	and apl.approvalType = 'OB'
+            	and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 ,length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+            	and ap.site = 'SIS' 
+	------------------------------------------------------
+	UNION ALL
+	------------------------------------------------------
+            -- 수신함
+            select 'RECV' list,
+            			 ap.stateState,
+			       			 'xx' approvalType,
+                   ap.pbocode,
+                   decode( ap.statestate ,'APPROVAL_REJECTED','' ,'') || ap.apprTitle apprTitle,
+        		   		 ap.apprcreatorid senderid             ,
+            	   	 to_char(wi.createStampA2 + ?, 'YYYY-MM-DD hh24:mi') receivedate,
+            	   	 ('OR:wt.workflow.work.WorkItem:'||wi.ida2a2) workItemOid,
+            	 	   ('OR:ext.sis.common.Approval:'||ap.ida2a2) approvalOid,
+            	  	  sign(wi.modifyStampA2 - (wi.createStampA2+ 3/3600/24)) openState,
+            	  	  ap.site site
+            from workitem wi, approval ap, wtuser wu
+            where wi.status = 'POTENTIAL'
+        		and wu.name = ?
+        		and wi.IDA3A2OWNERSHIP = wu.ida2a2
+        		and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+        		and ap.site = 'SIS' 
+            and substr(wi.classNameKeyB4 ,length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+		        and ap.statestate IN ( 'APPROVAL_REJECTED', 'REVIEW_ING', 'REVIEW_COMPLETED')
+		) aaa , ( select datacode, datacodeengname, datacodekorname  from commcode
+            	   where ida2a2 in (  select ida3a5 
+            							  from COMMCODELINK 
+            							  where ida3b5 in 
+            							  (  select ida2a2
+            								 from  COMMCODE
+            								 where datacode = 'APPRPBOCODE'  
+            							  )
+            					  )
+        ) comm, umsuser uu
+	where aaa.pbocode = comm.datacode
+	and aaa.senderid = uu.userid
+	order by aaa.receivedate desc	
+    ]]> </sql>
+  </MAINBOX>
+
+  <MAINBOXCOUNT>
+	<note>MAINBOXCOUNT</note>
+	 <author>ost</author>
+		<sql> <![CDATA[
+	  select list, count(*) cnt
+		from
+			(
+		    --결재함	
+            select 'APPR' list,
+            	   to_char(wi.createStampA2 + ? , 'YYYY-MM-DD') receivedate
+            from workitem wi, approval ap, wtuser wu, apprparticipantlink apl
+            where wi.status = 'POTENTIAL'
+            	and wu.name = ?
+            	and wi.IDA3A2OWNERSHIP = wu.ida2a2
+            	and apl.ida3b5 = ap.ida2a2
+            	and apl.ida3a5 = wu.ida2a2
+            	and apl.approvalType in ('AP', 'AG', 'AA')
+            	and apl.completeDate is null	
+            	and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 , length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+            	and ap.site = 'SIS' 
+	------------------------------------------------------
+	UNION ALL
+	------------------------------------------------------
+            -- 통보함
+            select 'NOTI' list,
+            	   to_char(wi.createStampA2 + ?, 'YYYY-MM-DD') receivedate
+            from workitem wi, approval ap, wtuser wu, apprparticipantlink apl
+            where wi.status = 'POTENTIAL'
+            	and wu.name = ?
+            	and wi.IDA3A2OWNERSHIP = wu.ida2a2
+            	and wi.description = '통보자 Activity'
+            	and apl.ida3b5 = ap.ida2a2
+            	and apl.ida3a5 = wu.ida2a2
+            	and apl.approvalType = 'OB'
+            	and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 ,length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+            	and ap.site = 'SIS' 
+	------------------------------------------------------
+	UNION ALL
+	------------------------------------------------------
+            -- 수신함
+            select 'RECV' list,
+            	   to_char(wi.createStampA2 + ?, 'YYYY-MM-DD') receivedate
+            from workitem wi, approval ap, wtuser wu
+            where wi.status = 'POTENTIAL'
+        		and wu.name = ?
+        		and wi.IDA3A2OWNERSHIP = wu.ida2a2
+        		and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 ,length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+		        and ap.statestate IN ( 'APPROVAL_REJECTED', 'REVIEW_ING', 'REVIEW_COMPLETED')
+		        and ap.site = 'SIS'
+		) aaa 
+		group by list
+		]]> </sql>
+  </MAINBOXCOUNT>
+  
+  
+  <REUSE-MAINBOX>
+    <note>REUSE-MAINBOX</note>
+    <author>ost</author>
+    <sql> <![CDATA[
+	select  pboCode,
+	        aaa.stateState stateState,
+	    	  aaa.list exChangeList,
+				  approvalType,
+          decode(?,'ko',comm.datacodekorname ,comm.datacodekorname) pboName,
+		  
+		  case ? 
+			
+			when 'ko' then 
+				decode(list,'APPR',decode(aaa.approvalType,'AP','[결재] ','AA','[후결] ','AG','[합의] ',''),'NOTI','[통보] ','RECV','[수신] ','') 
+			
+			else 
+				decode(list,'APPR',decode(aaa.approvalType,'AP','[Approval] ','AA','[AfterApproval] ','AG','[Agree] ',''),'NOTI','[Observe] ','RECV','[Receive] ','')
+		  
+		  end  || aaa.apprTitle apprTitle,
+
+          aaa.senderid senderid  , 
+    	    uu.fullkorname korname ,
+    	    uu.fullengname engname ,
+          aaa.receivedate receivedate, 
+          workItemOid,
+          approvalOid,
+          aaa.openState openState,
+          aaa.site site from 
+
+		(
+		    --결재함	
+            select 'APPR' list,
+            			 ap.stateState,
+				  				 apl.approvalType,
+                   ap.pbocode,
+                   ap.apprTitle                    , 
+        		 			 ap.apprcreatorid senderid             , 
+            	   	 to_char(wi.createStampA2 + ? , 'YYYY-MM-DD hh24:mi') receivedate,
+            	   	('OR:wt.workflow.work.WorkItem:'||wi.ida2a2) workItemOid,
+            	   	('OR:ext.sis.common.Approval:'||ap.ida2a2) approvalOid,
+            	   	sign(wi.modifyStampA2 - (wi.createStampA2+ 3/3600/24)) openState,
+            	   	ap.site site
+            from workitem wi, approval ap, wtuser wu, apprparticipantlink apl
+            where wi.status = 'POTENTIAL'
+            	and wu.name = ?
+            	and wi.IDA3A2OWNERSHIP = wu.ida2a2
+            	and apl.ida3b5 = ap.ida2a2
+            	and apl.ida3a5 = wu.ida2a2
+            	and apl.approvalType in ('AP', 'AG', 'AA')
+            	and apl.completeDate is null	
+            	and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 , length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+            	and ap.site = 'STD'
+	------------------------------------------------------
+	UNION ALL
+	------------------------------------------------------
+            -- 통보함
+            select 'NOTI' list,
+                   ap.stateState,
+			       			 apl.approvalType,
+                   ap.pbocode,
+                   ap.apprTitle                    , 
+        		   		 ap.apprcreatorid senderid             , 
+            	   	 to_char(wi.createStampA2 + ?, 'YYYY-MM-DD hh24:mi') receivedate,
+            	   	('OR:wt.workflow.work.WorkItem:'||wi.ida2a2) workItemOid,
+            	   	('OR:ext.sis.common.Approval:'||ap.ida2a2) approvalOid,
+            	   	sign(wi.modifyStampA2 - (wi.createStampA2+ 3/3600/24)) openState,
+            	   	ap.site site
+            from workitem wi, approval ap, wtuser wu, apprparticipantlink apl
+            where wi.status = 'POTENTIAL'
+            	and wu.name = ?
+            	and wi.IDA3A2OWNERSHIP = wu.ida2a2
+            	and wi.description = '통보자 Activity'
+            	and apl.ida3b5 = ap.ida2a2
+            	and apl.ida3a5 = wu.ida2a2
+            	and apl.approvalType = 'OB'
+            	and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 ,length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+            	and ap.site = 'STD'
+	------------------------------------------------------
+	UNION ALL
+	------------------------------------------------------
+            -- 수신함
+            select 'RECV' list,
+            			 ap.stateState,
+			       			 'xx' approvalType,
+                   ap.pbocode,
+                   decode( ap.statestate ,'APPROVAL_REJECTED','' ,'') || ap.apprTitle apprTitle,
+        		   		 ap.apprcreatorid senderid             ,
+            	   	 to_char(wi.createStampA2 + ?, 'YYYY-MM-DD hh24:mi') receivedate,
+            	   	 ('OR:wt.workflow.work.WorkItem:'||wi.ida2a2) workItemOid,
+            	 	   ('OR:ext.sis.common.Approval:'||ap.ida2a2) approvalOid,
+            	  	  sign(wi.modifyStampA2 - (wi.createStampA2+ 3/3600/24)) openState,
+            	  	  ap.site site
+            from workitem wi, approval ap, wtuser wu
+            where wi.status = 'POTENTIAL'
+        		and wu.name = ?
+        		and wi.IDA3A2OWNERSHIP = wu.ida2a2
+        		and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            and substr(wi.classNameKeyB4 ,length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+		        and ap.site = 'STD'
+		        and ap.statestate IN ( 'APPROVAL_REJECTED', 'REVIEW_ING', 'REVIEW_COMPLETED')
+		) aaa , ( select datacode, datacodeengname, datacodekorname  from commcode
+            	   where ida2a2 in (  select ida3a5 
+            							  from COMMCODELINK 
+            							  where ida3b5 in 
+            							  (  select ida2a2
+            								 from  COMMCODE
+            								 where datacode = 'APPRPBOCODER'  
+            							  )
+            					  )
+        ) comm, umsuser uu
+	where aaa.pbocode = comm.datacode
+	and aaa.senderid = uu.userid
+	order by aaa.receivedate desc	
+    ]]> </sql>
+  </REUSE-MAINBOX>
+
+  <REUSE-MAINBOXCOUNT>
+	<note>REUSE-MAINBOXCOUNT</note>
+	 <author>ost</author>
+		<sql> <![CDATA[
+	  select list, count(*) cnt
+		from
+			(
+		    --결재함	
+            select 'APPR' list,
+            	   to_char(wi.createStampA2 + ? , 'YYYY-MM-DD') receivedate
+            from workitem wi, approval ap, wtuser wu, apprparticipantlink apl
+            where wi.status = 'POTENTIAL'
+            	and wu.name = ?
+            	and wi.IDA3A2OWNERSHIP = wu.ida2a2
+            	and apl.ida3b5 = ap.ida2a2
+            	and apl.ida3a5 = wu.ida2a2
+            	and apl.approvalType in ('AP', 'AG', 'AA')
+            	and apl.completeDate is null	
+            	and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 , length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+            	and ap.site = 'STD'
+	------------------------------------------------------
+	UNION ALL
+	------------------------------------------------------
+            -- 통보함
+            select 'NOTI' list,
+            	   to_char(wi.createStampA2 + ?, 'YYYY-MM-DD') receivedate
+            from workitem wi, approval ap, wtuser wu, apprparticipantlink apl
+            where wi.status = 'POTENTIAL'
+            	and wu.name = ?
+            	and wi.IDA3A2OWNERSHIP = wu.ida2a2
+            	and wi.description = '통보자 Activity'
+            	and apl.ida3b5 = ap.ida2a2
+            	and apl.ida3a5 = wu.ida2a2
+            	and apl.approvalType = 'OB'
+            	and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 ,length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+            	and ap.site = 'STD'
+	------------------------------------------------------
+	UNION ALL
+	------------------------------------------------------
+            -- 수신함
+            select 'RECV' list,
+            	   to_char(wi.createStampA2 + ?, 'YYYY-MM-DD') receivedate
+            from workitem wi, approval ap, wtuser wu
+            where wi.status = 'POTENTIAL'
+        		and wu.name = ?
+        		and wi.IDA3A2OWNERSHIP = wu.ida2a2
+        		and wi.classNameKeyB4 like 'OR:ext.sis.common.Approval%'
+            	and substr(wi.classNameKeyB4 ,length('OR:ext.sis.common.Approval:')+1) = ap.ida2a2
+		        and ap.statestate IN ( 'APPROVAL_REJECTED', 'REVIEW_ING', 'REVIEW_COMPLETED')
+		        and ap.site = 'STD'
+		) aaa 
+		group by list
+		]]> </sql>
+  </REUSE-MAINBOXCOUNT>
+  
+  
+  
+  
+  
+  <APPROVAL_PRESENTER_INFO>
+    <note>APPROVAL_PRESENTER_INFO</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select stateState, to_char(CREATESTAMPA2 + ?, 'YYYY.MM.DD hh24:mi') CREATESTAMPA2, 
+		APPRDESC,
+		APPRCREATORID,
+		PBOCODE,
+		APPRTITLE
+	from Approval
+	where ida2a2 = ? 
+
+    ]]> </sql>
+  </APPROVAL_PRESENTER_INFO>
+
+  <APPROVAL_ROUTE_INFO>
+    <note>APPROVAL_ROUTE_INFO</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select '0' step, 'PR' approvalType, APPRDESC comments, APPRCREATORID userid, 
+	   to_char(CREATESTAMPA2 + ?, 'YYYY.MM.DD hh24:mi') completeDate, 
+	   stateState, PBOCODE, APPRTITLE, '' APPRCOMPLETE
+	from Approval
+	where ida2a2 = ? 
+	UNION ALL	
+	select apl.step step, apl.approvalType approvalType, apl.comments comments, wu.name userId,
+		to_char(apl.completeDate + ?, 'YYYY-MM-DD hh24:mi') completeDate,
+		ap.stateState, ap.PBOCODE, ap.APPRTITLE, apl.APPRCOMPLETE APPRCOMPLETE
+		--'OR:ext.sis.common.ApprParticipantLink:'||apl.ida2a2 IDA2A2
+	from apprparticipantlink apl, wtuser wu, umsuser uu, Approval ap
+	where apl.ida3b5 = ?
+		and apl.ida3a5 = wu.ida2a2
+		and uu.userid = wu.name
+		and ap.ida2a2 = apl.ida3b5
+		order by step, completedate
+    ]]> </sql>
+  </APPROVAL_ROUTE_INFO>
+  
+  <APPROVAL_ANY_ROUTE_INFO>
+    <note>APPROVAL_ROUTE_INFO</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	    select '0' step, 'PR' approvalType, APPRDESC comments, APPRCREATORID userid, 
+	           to_char(CREATESTAMPA2 + 1, 'YYYY.MM.DD hh24:mi') completeDate, 
+	           stateState, PBOCODE, APPRTITLE, '' APPRCOMPLETE
+		from approval
+		where ida3b8 = ?
+	    UNION ALL		
+		select apl.step step, apl.approvalType approvalType, apl.comments comments, wu.name userId,
+		to_char(apl.completeDate + ?, 'YYYY-MM-DD hh24:mi') completeDate,
+		ap.stateState, ap.PBOCODE, ap.APPRTITLE, apl.APPRCOMPLETE APPRCOMPLETE
+		from sisrequest r, Approval ap, apprparticipantlink apl, wtuser wu, umsuser uu
+		where r.ida3a4 = ( select ida3a4 from sispartversion where ida2a2 = ? ) 
+	    and requesttype = 'PARTSTANDARD'	
+		and ap.ida3b8 = r.ida2a2
+		and ap.statestate = 'APPROVAL_COMPLETED'
+		and ap.ida2a2 = apl.ida3b5
+		and apl.ida3a5 = wu.ida2a2
+		and uu.userid = wu.name
+    ]]> </sql>
+  </APPROVAL_ANY_ROUTE_INFO>
+  
+  <APPROVAL_PARTICIPANTLINK>
+    <note>APPROVAL_PARTICIPANTLINK</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select 'OR:ext.sis.common.ApprParticipantLink:'||apl.ida2a2 Oid,
+		approvalType
+	from apprparticipantlink apl, wtuser wu
+	where apl.ida3b5 = ?
+		and wu.name = ?
+		and apl.ida3a5 = wu.ida2a2
+    ]]> </sql>
+  </APPROVAL_PARTICIPANTLINK>
+  
+  <CONTAINER_NAME>
+    <note>CONTAINER_NAME</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select F.NAME ContainerName 
+	from RolePrincipalMap A, ContainerTeam B, WTUser C, PDMLinkProduct D, WTProductMaster F 
+	where A.IDA3A4 = B.IDA2A2  and 
+		A.IDA3B4 = C.IDA2A2 and 
+		D.idA3A2containerTeamManagedIn = B.ida2a2 and 
+		D.idA3A7=F.idA2A2 and 
+		A.ROLE='MEMBERS' and 
+		C.NAME = ?
+    ]]> </sql>
+  </CONTAINER_NAME>
+  
+  <APPROVAL_COMPLETE_CHECK>
+    <note>APPROVAL_COMPLETE_CHECK</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select step, approvalType, count('x') Count 
+		from apprparticipantlink 
+		where ida3b5 = ? 
+			and completeDate is null 
+		group by step, approvalType 
+    ]]> </sql>
+  </APPROVAL_COMPLETE_CHECK>
+  
+  <APPROVAL_TYPE_CHECK>
+    <note>APPROVAL_TYPE_CHECK</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select approvalType
+	from apprparticipantlink 
+	where ida3b5 = ? 
+		and ida3a5 = ?
+    ]]> </sql>
+  </APPROVAL_TYPE_CHECK>
+  
+  <REJECT_INFO>
+    <note>REJECT_INFO</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select 'OR:ext.sis.common.ApprParticipantLink:'||ida2a2 IDA2A2
+	from apprparticipantlink 
+	where ida3b5 = ? 
+		and step <= ?
+		and completeDate is not null
+	order by completeDate desc
+    ]]> </sql>
+  </REJECT_INFO>
+  
+  <LATEST_APPROVAL_OID>
+    <note>LATEST_APPROVAL_OID</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select ida2a2
+	from approval 
+	where ida3b8 = ? 
+	order by createstampa2 desc
+    ]]> </sql>
+  </LATEST_APPROVAL_OID>
+  
+  <COMPLETED_WORKITEM>
+    <note>COMPLETED_WORKITEM</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select ida2a2 from workitem 
+	where classnamekeyB4 = ?
+		and completedBy is null
+    ]]> </sql>
+  </COMPLETED_WORKITEM>
+  
+  <REVIEW_PARTICIPANTLINK>
+    <note>REVIEW_PARTICIPANTLINK</note>
+    <author>charismma</author>
+    <sql> <![CDATA[
+	select ida2a2 from ApprParticipantLink 
+	where ida3b5 = ?
+		and completeDate is null
+    ]]> </sql>
+  </REVIEW_PARTICIPANTLINK>
+  
+</CommonSQL>
