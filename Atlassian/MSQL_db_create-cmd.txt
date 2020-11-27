@@ -1,0 +1,123 @@
+MSSQL ¼­¹öÀÇ DB create sql
+
+--------- jira
+
+ALTER DATABASE THE-NEW-DATABASE-CREATED-FOR-JIRA SET READ_COMMITTED_SNAPSHOT ON 
+
+
+
+CREATE DATABASE jira
+GO
+USE jira
+GO
+ALTER DATABASE jira SET ALLOW_SNAPSHOT_ISOLATION ON
+GO
+ALTER DATABASE jira SET READ_COMMITTED_SNAPSHOT ON
+GO
+ALTER DATABASE jira COLLATE SQL_Latin1_General_CP437_CI_AI
+GO
+SET NOCOUNT OFF
+GO
+USE master
+GO
+CREATE LOGIN jirauser WITH PASSWORD=N'yourpasswordhere', DEFAULT_DATABASE=jira, CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
+GO
+ALTER AUTHORIZATION ON DATABASE::jira TO jirauser
+GO
+CREATE SCHEMA jiraschema
+
+
+------- crowd 
+1. Create a database user which Crowd will connect as (e.g. crowduser).
+
+In SQL Server, the database user (crowduser above) should not be the database owner, but should be in the db_owner role.
+Additionally, you should create the database with case sensitive collation.
+2. Create a database for Crowd to store data in (e.g. crowddb).
+3. Ensure that the user has permission to connect to the database, and create and populate tables
+
+4. Ensure that the new database was set to use Read Committed with Row Versioning as its isolation level.
+You can apply the new isolation by executing the following query:
+
+ALTER DATABASE <database name>
+   SET READ_COMMITTED_SNAPSHOT ON
+   WITH ROLLBACK IMMEDIATE;
+
+To verify the changes, use this query which should result in '1':
+
+SELECT sd.is_read_committed_snapshot_on
+FROM sys.databases AS sd
+WHERE sd.[name] = '<database name>';
+
+
+CREATE DATABASE [dbname] 
+	ON PRIMARY (.......)
+	LOG ON (..........)
+	COLLATE Lain1_General_CS_AS
+	
+
+jdbc driver download : http://jtds.sourceforge.net/ 
+
+Add the SQL Server JDBC driver JAR (jtds-[version].jar) to the following directory:
+
+    For Crowd distribution:
+        Crowd 2.0.2 or later: {CROWD_INSTALL}/apache-tomcat/lib/.
+        Crowd 2.0.1 or earlier: {CROWD_INSTALL}/apache-tomcat/common/lib/.
+    For Crowd WAR distribution, copy the driver JAR to your application server. For example, on Tomcat:
+        Tomcat 5.5.x: common/lib/.
+        Tomcat 6.x: lib/.
+        
+*** Configuring Unicode Support in MS SQL Server
+
+To configure Crowd to support Unicode in MS SQL Server 2005 and 2008, 
+enter the following in the 'Hibernate Dialect' field 
+on the Crowd Setup Wizard's Database Configuration screen:
+
+com.atlassian.crowd.util.persistence.hibernate.SQLServerIntlDialect
+
+------------ fisheye
+
+ALTER DATABASE fisheye 
+   SET READ_COMMITTED_SNAPSHOT ON
+   WITH ROLLBACK IMMEDIATE;
+
+ALTER DATABASE crucible
+   SET READ_COMMITTED_SNAPSHOT ON;
+
+The correct collation to use when you create the new SQL Server database is Latin1_General_CS_AS.
+
+
+
+
+CREATE DATABASE fecru
+GO
+USE fecru
+GO
+ALTER DATABASE fecru SET ALLOW_SNAPSHOT_ISOLATION ON
+GO
+ALTER DATABASE fecru SET READ_COMMITTED_SNAPSHOT ON
+GO
+ALTER DATABASE fecru COLLATE SQL_Latin1_General_CP437_CI_AI
+GO
+SET NOCOUNT OFF
+GO
+USE master
+GO
+CREATE LOGIN fecruuser WITH PASSWORD=N'fecru', DEFAULT_DATABASE=fecru, CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
+GO
+ALTER AUTHORIZATION ON DATABASE::fecru TO fecruuser
+GO
+CREATE SCHEMA fecruschema
+
+
+
+------------- stash 
+
+
+
+
+
+
+
+
+
+
